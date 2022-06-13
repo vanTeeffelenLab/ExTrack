@@ -73,7 +73,7 @@ Need to install git if not already installed.
 # Usage
 ## Main functions
 
-extrack.tracking.get_2DSPT_params : performs the fit to infer the parameters of a given data set.
+extrack.tracking.param_fitting : performs the fit to infer the parameters of a given data set.
 
 extrack.visualization.visualize_states_durations : plot histograms of the duration in each state.
 
