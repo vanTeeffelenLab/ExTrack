@@ -20,7 +20,7 @@ all_tracks, all_Bs = extrack.simulate_tracks.sim_FOV(nb_tracks=2000,
 
 # fit parameters of the simulated tracks : 
 # increase the number of workers accordingly to your number of avaialable core for faster computing, not working on windows
-model_fit = extrack.tracking.get_2DSPT_params(all_tracks,
+model_fit = extrack.tracking.param_fitting(all_tracks,
                                               dt,
                                               cell_dims = [1],
                                               nb_substeps = 2,
@@ -145,7 +145,7 @@ all_tracks, all_Bs = extrack.simulate_tracks.sim_FOV(nb_tracks=10000,
 
 # fit parameters of the simulated tracks :
 
-model_fit = extrack.tracking.get_2DSPT_params(all_tracks,
+model_fit = extrack.tracking.param_fitting(all_tracks,
                                               dt,
                                               cell_dims = [1],
                                               nb_substeps = 1,
