@@ -733,7 +733,7 @@ def get_params(nb_states = 2,
     [params.add(**param_kwargs[k]) for k in range(len(param_kwargs))]
     return params
 
-def get_2DSPT_params(all_tracks,
+def param_fitting(all_tracks,
                      dt,
                      nb_states = 2,
                      nb_substeps = 1,
