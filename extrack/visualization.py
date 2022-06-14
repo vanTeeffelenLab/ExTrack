@@ -46,6 +46,7 @@ def visualize_states_durations(all_tracks,
     plt.xlabel('state duration (%s)'%(step_type))
     plt.ylabel('fraction')
     plt.tight_layout()
+    return len_hists
 
 def visualize_tracks(DATA,
                      track_length_range = [10,np.inf],
