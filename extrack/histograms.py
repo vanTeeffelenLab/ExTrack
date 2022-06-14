@@ -314,7 +314,7 @@ def ground_truth_hist(all_Bs,
                       nb_steps_lim = 20): # if long_tracks = True minimum track length considered
     
     if long_tracks:
-        for i, l in enumerate(all_Bs):
+        for i, l in enumerate(list(all_Bs.keys())):
             if int(l) < nb_steps_lim:
                 del all_Bs[l]
     seg_len_hists = np.zeros((np.max(np.array(list(all_Bs.keys())).astype(int)),nb_states))
