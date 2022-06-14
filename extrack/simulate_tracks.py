@@ -213,7 +213,7 @@ def sim_FOV(nb_tracks=10000,
         all_Css[k] = np.array(all_Css[k])
         all_Bss[k] = np.array(all_Bss[k])
         if len(all_Css[k])>0:
-            print(str(all_Css.shape[1])+' pos :',str(len(all_Css[k]))+', ', end = '')
+            print(str(all_Css[k].shape[1])+' pos :',str(len(all_Css[k]))+', ', end = '')
     print('')
     
     all_Css_dict = {}
