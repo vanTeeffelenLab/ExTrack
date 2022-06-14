@@ -37,16 +37,6 @@ the version 1.4 has an oudated version for the histograms script, replace it wit
 
 all_tracks: dict describing the tracks with track length as keys (number of time positions, e.g. '23') of 3D arrays: dim 0 = track, dim 1 = time position, dim 2 = x, y position.
 
-# Tutorial
-
-Test codes can be found at these location: 
-- tests/test_extrack.py
-- or tests/tutorial_extrack.ipynb
-These contain the most important modules in a comprehensive framework. 
-The .ipynb file is more didactic. One has to install jupyter to use it: `pip install jupyter`.
-
-**Document here how to open a Jupyter notebook**
-
 # Installation from this Gitlab repository
 
 ## From Unix/Mac:
@@ -69,6 +59,16 @@ Need to install git if not already installed.
 
 `python setup.py install` from the ExTrack-python3 directory
 
+
+# Tutorial
+
+Test codes can be found at these location: 
+- tests/test_extrack.py
+- or tests/tutorial_extrack.ipynb
+These contain the most important modules in a comprehensive framework. 
+The .ipynb file is more didactic. One has to install jupyter to use it: `pip install jupyter`.
+
+**Document here how to open a Jupyter notebook**
 
 # Usage
 ## Main functions
