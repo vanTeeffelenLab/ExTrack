@@ -2,13 +2,13 @@ import xmltodict
 import numpy as np
 import pandas as pd
 
-def read_trackmate_xml(path,
-                       lengths=np.arange(5,16),
-                       dist_th = 0.3,
-                       start_frame = 0,
-                       remove_no_disp = True, 
+def read_trackmate_xml(paths, # path (string specifying the path of the file or list of paths in case of multiple files.
+                       lengths=np.arange(5,40), # track lengths kept.
+                       dist_th = 0.3, # maximum distance between consecutive peaks of a track.
+                       start_frame = 0, 
+                       remove_no_disp = True, # removes tracks showing no motion if True.
                        opt_metrics_names = ['t', 'x'], # e.g. ['pred_0', 'pred_1'],
-                       opt_metrics_types = [int, 'float64'] # will assum 'float64' type if none, otherwise specify a list of same length as opt_metrics_names: e.g. ['float64','float64']
+                       opt_metrics_types = [int, 'float64'] # will assume 'float64' type if none, otherwise specify a list of same length as opt_metrics_names: e.g. ['float64','float64']
                        ):
     """
     Converts xml output from trackmate to a list of arrays of tracks
@@ -20,19 +20,8 @@ def read_trackmate_xml(path,
     dist_th : maximum distance allowed to connect consecutive peaks
     start_frame : first frame considered 
     """
-    data = xmltodict.parse(open(path, 'r').read(), encoding='utf-8')
-    # Checks
-    spaceunit = data['Tracks']['@spaceUnits']
-    if spaceunit not in ('micron', 'um', 'µm', 'Âµm'):
-        raise IOError("Spatial unit not recognized: {}".format(spaceunit))
-    if data['Tracks']['@timeUnits'] != 'ms':
-        raise IOError("Time unit not recognized")
-    
-    if opt_metrics_types == None:
-        opt_metrics_types = ['float64']*len(opt_metrics_names)
-    
-    # parameters
-    framerate = float(data['Tracks']['@frameInterval'])/1000. # framerate in ms
+    if type(paths) == type(''):
+        paths = [paths]
     traces = {}
     frames = {}
     opt_metrics = {}
@@ -43,37 +32,53 @@ def read_trackmate_xml(path,
         frames[str(l)] = []
         for m in opt_metrics_names:
             opt_metrics[m][str(l)] = []
-    try:
-        for i, particle in enumerate(data['Tracks']['particle']):
-            track = [(float(d['@x']), float(d['@y']), float(d['@t'])*framerate, int(d['@t']), i) for d in particle['detection']]
-            opt_met = np.empty((int(particle['@nSpots']), len(opt_metrics_names)), dtype = 'object')
-            for k, d in enumerate(particle['detection']):
-                for j, m in enumerate(opt_metrics_names):
-                    opt_met[k, j] = d['@'+opt_metrics_names[j]]
-            
-            track = np.array(track)
-            if remove_no_disp:
-                no_zero_disp = np.min((track[1:,0] - track[:-1,0])**2) * np.min((track[1:,1] - track[:-1,1])**2)
-            else:
-                no_zero_disp = True
-            
-            dists = np.sum((track[1:, :2] - track[:-1, :2])**2, axis = 1)**0.5
-            if no_zero_disp and track[0, 3] >= start_frame and np.all(dists<dist_th):
-                l = len(track)
-                if np.any([l]*len(lengths) == np.array(lengths)) :
-                    traces[str(l)].append(track[:, 0:2])
-                    frames[str(l)].append(track[:, 3])
-                    for k, m in enumerate(opt_metrics_names):
-                        opt_metrics[m][str(l)].append(opt_met[:, k])
-                elif l > np.max(lengths):
-                    l = np.max(lengths)
-                    traces[str(l)].append(track[:l, 0:2])
-                    frames[str(l)].append(track[:l, 3])
-                    for k, m in enumerate(opt_metrics_names):
-                        opt_metrics[m][str(l)].append(opt_met[:l, k])
-    except :
-        print('problem with data on path :', path)
-        raise e
+    
+    if opt_metrics_types == None:
+        opt_metrics_types = ['float64']*len(opt_metrics_names)
+    
+    for path in paths:
+        data = xmltodict.parse(open(path, 'r').read(), encoding='utf-8')
+        # Checks
+        spaceunit = data['Tracks']['@spaceUnits']
+        if spaceunit not in ('micron', 'um', 'µm', 'Âµm'):
+            raise IOError("Spatial unit not recognized: {}".format(spaceunit))
+        if data['Tracks']['@timeUnits'] != 'ms':
+            raise IOError("Time unit not recognized")
+
+        # parameters
+        framerate = float(data['Tracks']['@frameInterval'])/1000. # framerate in ms
+
+        try:
+            for i, particle in enumerate(data['Tracks']['particle']):
+                track = [(float(d['@x']), float(d['@y']), float(d['@t'])*framerate, int(d['@t']), i) for d in particle['detection']]
+                opt_met = np.empty((int(particle['@nSpots']), len(opt_metrics_names)), dtype = 'object')
+                for k, d in enumerate(particle['detection']):
+                    for j, m in enumerate(opt_metrics_names):
+                        opt_met[k, j] = d['@'+opt_metrics_names[j]]
+
+                track = np.array(track)
+                if remove_no_disp:
+                    no_zero_disp = np.min((track[1:,0] - track[:-1,0])**2) * np.min((track[1:,1] - track[:-1,1])**2)
+                else:
+                    no_zero_disp = True
+
+                dists = np.sum((track[1:, :2] - track[:-1, :2])**2, axis = 1)**0.5
+                if no_zero_disp and track[0, 3] >= start_frame and np.all(dists<dist_th):
+                    l = len(track)
+                    if np.any([l]*len(lengths) == np.array(lengths)) :
+                        traces[str(l)].append(track[:, 0:2])
+                        frames[str(l)].append(track[:, 3])
+                        for k, m in enumerate(opt_metrics_names):
+                            opt_metrics[m][str(l)].append(opt_met[:, k])
+                    elif l > np.max(lengths):
+                        l = np.max(lengths)
+                        traces[str(l)].append(track[:l, 0:2])
+                        frames[str(l)].append(track[:l, 3])
+                        for k, m in enumerate(opt_metrics_names):
+                            opt_metrics[m][str(l)].append(opt_met[:l, k])
+        except :
+            print('problem with data on path :', path)
+            raise e
 
     for l in traces:
         if len(traces[l])>0:
@@ -89,7 +94,7 @@ def read_trackmate_xml(path,
 
     return traces, frames, opt_metrics
 
-def read_table(path, # path of the file to read
+def read_table(path, # path of the file to read or list of paths to read multiple files.
                lengths = np.arange(5,16), # number of positions per track accepted (take the first position if longer than max
                dist_th = 0.3, # maximum distance allowed for consecutive positions 
                start_frame = 0, # 
@@ -98,6 +103,8 @@ def read_table(path, # path of the file to read
                opt_colnames = [], # list of additional metrics to collect e.g. ['QUALITY', 'ID']
                remove_no_disp = True):
     
+    if type(paths) == type(''):
+        paths = [paths]
     nb_peaks = 0
     if fmt == 'csv':
         data = pd.read_csv(path, sep=',')
