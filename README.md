@@ -59,14 +59,13 @@ Need to install git if not already installed.
 
 `python setup.py install` from the ExTrack-python3 directory
 
-
 # Tutorial
 
 Test codes can be found at these location: 
 - tests/test_extrack.py
 - or tests/tutorial_extrack.ipynb
-These contain the most important modules in a comprehensive framework. 
-The .ipynb file is more didactic. One has to install jupyter to use it: `pip install jupyter`.
+
+These contain the most important modules in a comprehensive framework. We recommand following the tutorial tutorial_extrack.ipynb which uses Jupyter notebook as it is more didactic. One has to install jupyter to use it: `pip install jupyter` in the anaconda prompt for conda users. 
 
 **Document here how to open a Jupyter notebook**
 
