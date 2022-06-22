@@ -27,7 +27,7 @@ Optional: jupyter, cupy
 
 ## Install ExTrack
 
-`pip install extrack`
+`pip install extrack` (Don't use this now as it is not updated)
 
 https://pypi.org/project/extrack/
 
