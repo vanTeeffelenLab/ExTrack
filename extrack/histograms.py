@@ -7,6 +7,7 @@ Created on Thu Nov 11 17:01:56 2021
 """
 
 import numpy as np
+from itertools import product
 
 GPU_computing = False
 
@@ -46,7 +47,15 @@ def P_segment_len(Cs, LocErr, ds, Fs, TrMat, min_l = 3, pBL=0.1, isBL = 1, cell_
     Cs = cp.array(Cs)
     nb_states = TrMat.shape[0]
     Cs = Cs[:,:,::-1]
+    LocErr = LocErr[:,None]
+    LocErr = LocErr[:,:,::-1] # useful when single peak localization error is inputed,
     LocErr2 = LocErr**2
+    if LocErr.shape[2] == 1: # combined to min(LocErr_index, nb_locs-current_step) it will select the right index
+        LocErr_index = -1
+    elif LocErr.shape[2] == nb_locs:
+        LocErr_index = nb_locs
+    else:
+        raise ValueError("Localization error is not specified correctly, in case of unique localization error specify a float number in estimated_vals['LocErr'].\n If one localization error per dimension, specify a list or 1D array of elements the localization error for each dimension.\n If localization error is predetermined by another method for each position the argument input_LocErr should be a dict for each track length of the 3D arrays corresponding to all_tracks (can be obtained from the reader functions using the opt_colname argument)")
     
     cell_dims = np.array(cell_dims)
     cell_dims = cell_dims[cell_dims!=None]
@@ -118,12 +127,12 @@ def P_segment_len(Cs, LocErr, ds, Fs, TrMat, min_l = 3, pBL=0.1, isBL = 1, cell_
             cur_p_stay = ((np.mean(scipy.stats.norm.cdf((cell_len-xs[:,None])/(sub_ds+1e-200)) - scipy.stats.norm.cdf(-xs[:,None]/(sub_ds+1e-200)),0))) # proba to stay in the FOV for each of the possible cur Bs
             p_stay = p_stay*cur_p_stay
         Lp_stay = np.log(p_stay * (1-pBL)) # proba for the track to survive = both stay in the FOV and not bleach
-            
+        
         if current_step >= min_l:
             LL = LL + Lp_stay[np.argmax(np.all(cur_states[:,None,:,:-1] == sub_Bs[:,:,None],-1),1)] # pick the right proba of staying according to the current states
 
         # inject the first position to get the associated m_arr and s2_arr :
-        m_arr, s2_arr = first_log_integrale_dif(Cs[:,:, nb_locs-current_step], LocErr2, cur_d2s)
+        m_arr, s2_arr = first_log_integrale_dif(Cs[:,:, nb_locs-current_step], LocErr2[:,:, min(LocErr_index, nb_locs-current_step)], cur_d2s)
         current_step += 1
         m_arr = cp.repeat(m_arr, cur_nb_Bs, axis = 1)
         removed_steps = 0
@@ -152,7 +161,7 @@ def P_segment_len(Cs, LocErr, ds, Fs, TrMat, min_l = 3, pBL=0.1, isBL = 1, cell_
             LP = cp.repeat(LP, nb_states**nb_substeps, axis = 1)
             LL = cp.repeat(LL, nb_states**nb_substeps, axis = 1)
             # inject the next position to get the associated m_arr, s2_arr and Constant describing the integral of 3 normal laws :
-            m_arr, s2_arr, LC = log_integrale_dif(Cs[:,:,nb_locs-current_step], LocErr2, cur_d2s, m_arr, s2_arr)
+            m_arr, s2_arr, LC = log_integrale_dif(Cs[:,:,nb_locs-current_step], LocErr2[:,:, min(LocErr_index, nb_locs-current_step)], cur_d2s, m_arr, s2_arr)
             #print('integral',time.time() - t0); t0 = time.time()
             if current_step >= min_l :
                 LL = LL + Lp_stay[np.argmax(np.all(cur_states[:,None,:,:-1] == sub_Bs[:,:,None],-1),1)] # pick the right proba of staying according to the current states
@@ -168,8 +177,10 @@ def P_segment_len(Cs, LocErr, ds, Fs, TrMat, min_l = 3, pBL=0.1, isBL = 1, cell_
             if current_step < nb_locs-1:
                 if cur_nb_Bs > max_nb_states:
                     
-                    new_s2_arr = cp.array((s2_arr + LocErr2))[:,:,0]
-                    log_integrated_term = -cp.log(2*np.pi*new_s2_arr) - cp.sum((Cs[:,:,nb_locs-current_step] - m_arr)**2,axis=2)/(2*new_s2_arr)
+                    #new_s2_arr = cp.array((s2_arr + LocErr2))[:,:,0]
+                    #log_integrated_term = -cp.log(2*np.pi*new_s2_arr) - cp.sum((Cs[:,:,nb_locs-current_step] - m_arr)**2,axis=2)/(2*new_s2_arr)
+                    new_s2_arr = cp.array((s2_arr + LocErr2[:,:, min(LocErr_index, nb_locs-current_step-1)]))
+                    log_integrated_term = cp.sum(-0.5*cp.log(2*np.pi*new_s2_arr) - (Cs[:,:,nb_locs-current_step-1] - m_arr)**2/(2*new_s2_arr),axis=2)
                     LF = 0 #cp.log(Fs[cur_Bs[:,:,0].astype(int)]) # Log proba of starting in a given state (fractions)
                     
                     test_LP = LP + log_integrated_term + LF
@@ -221,8 +232,11 @@ def P_segment_len(Cs, LocErr, ds, Fs, TrMat, min_l = 3, pBL=0.1, isBL = 1, cell_
             cur_Bs = cur_Bs[:,:,1:]
             #isBL = 0
         
-        new_s2_arr = cp.array((s2_arr + LocErr2))[:,:,0]
-        log_integrated_term = -cp.log(2*np.pi*new_s2_arr) - cp.sum((Cs[:,:,0] - m_arr)**2,axis=2)/(2*new_s2_arr)
+        #new_s2_arr = cp.array((s2_arr + LocErr2))[:,:,0]
+        #log_integrated_term = -cp.log(2*np.pi*new_s2_arr) - cp.sum((Cs[:,:,0] - m_arr)**2,axis=2)/(2*new_s2_arr)
+        new_s2_arr = cp.array((s2_arr + LocErr2[:,:, min(LocErr_index, 0)]))
+        log_integrated_term = cp.sum(-0.5*cp.log(2*np.pi*new_s2_arr) - (Cs[:,:,0] - m_arr)**2/(2*new_s2_arr),axis=2)
+
         #LF = cp.log(Fs[cur_Bs[:,:,0].astype(int)]) # Log proba of starting in a given state (fractions)
         #LF = cp.log(0.5)
         # cp.mean(cp.log(Fs[cur_Bs[:,:,:].astype(int)]), 2) # Log proba of starting in a given state (fractions)
@@ -270,7 +284,19 @@ def P_segment_len(Cs, LocErr, ds, Fs, TrMat, min_l = 3, pBL=0.1, isBL = 1, cell_
     
     return LP, cur_Bs, seg_len_hist
 
-def len_hist(all_tracks, params, dt, cell_dims=[0.5,None,None], nb_states=2, nb_substeps=1, max_nb_states = 500):
+def pool_star_P_seg(args):
+    return P_segment_len(*args)[-1]
+
+def len_hist(all_tracks,
+             params, 
+             dt, 
+             cell_dims=[0.5,None,None], 
+             nb_states=2, 
+             max_nb_states = 500,
+             workers = 1,
+             nb_substeps=1,
+             input_LocErr = None
+             ):
     '''
     each probability can be multiplied to get a likelihood of the model knowing
     the parameters LocErr, D0 the diff coefficient of state 0 and F0 fraction of
@@ -278,10 +304,67 @@ def len_hist(all_tracks, params, dt, cell_dims=[0.5,None,None], nb_states=2, nb_
     state 0 to 1 and p10 the proba of transition from state 1 to 0.
     here sum the logs(likelihood) to avoid too big numbers
     '''
-    LocErr, ds, Fs, TrMat, pBL = extract_params(params, dt, nb_states, nb_substeps)
+    LocErr, ds, Fs, TrMat, pBL = extract_params(params, dt, nb_states, nb_substeps, input_LocErr)
     min_l = np.min((np.array(list(all_tracks.keys()))).astype(int))
+
+    if type(all_tracks) == dict:
+        new_all_tracks = []
+        for l in all_tracks:
+            new_all_tracks.append(all_tracks[l])
+        all_tracks = new_all_tracks
+       
+    Csss = []
+    sigss = []
+    isBLs = []
+    for k in range(len(all_tracks)):
+        if k == len(all_tracks)-1:
+            isBL = 0 # last position correspond to tracks which didn't disapear within maximum track length
+        else:
+            isBL = 1
+        Css = all_tracks[k]
+        if input_LocErr != None:
+            sigs = LocErr[k]
+        nb_max = 50
+        for n in range(int(np.ceil(len(Css)/nb_max))):
+            Csss.append(Css[n*nb_max:(n+1)*nb_max])
+            if input_LocErr != None:
+                sigss.append(sigs[n*nb_max:(n+1)*nb_max])
+            if k == len(all_tracks)-1:
+                isBLs.append(0) # last position correspond to tracks which didn't disapear within maximum track length
+            else:
+                isBLs.append(1)
+    #Csss.reverse()
+    #sigss.reverse()
+    print('number of chunks:', len(isBLs))
     
-    if type(all_tracks) == type({}):
+    args_prod = np.array(list(product(Csss, [0], [ds], [Fs], [TrMat], [min_l],[pBL], [0],[cell_dims], [nb_substeps],  [max_nb_states])), dtype=object)
+    args_prod[:, 7] = isBLs
+    if input_LocErr != None:
+        args_prod[:,1] = sigss
+    else:
+        args_prod[:,1] = LocErr
+
+    Cs, LocErr, ds, Fs, TrMat, min_l, pBL,isBL, cell_dims, nb_substeps, max_nb_states = args_prod[0]
+    
+    if workers >= 2:
+        with multiprocessing.Pool(workers) as pool:
+            list_seg_len_hists = pool.map(pool_star_P_seg, args_prod)
+    else:
+        list_seg_len_hists = []
+        for k, args in enumerate(args_prod):
+            
+            list_seg_len_hists.append(pool_star_P_seg(args))
+    
+    seg_len_hists = np.zeros((all_tracks[-1].shape[1],nb_states))
+    for seg_len_hist in list_seg_len_hists:
+        seg_len_hists[:seg_len_hist.shape[0]] = seg_len_hists[:seg_len_hist.shape[0]] + seg_len_hist
+    print('')
+    return seg_len_hists
+    
+    
+    
+'''
+    if type(all_tracks) == dict:
         new_all_tracks = []
         for l in all_tracks:
             new_all_tracks.append(all_tracks[l])
@@ -306,7 +389,7 @@ def len_hist(all_tracks, params, dt, cell_dims=[0.5,None,None], nb_states=2, nb_
                 seg_len_hists[:seg_len_hist.shape[0]] = seg_len_hists[:seg_len_hist.shape[0]] + seg_len_hist
     print('')
     return seg_len_hists
-
+'''
 
 def ground_truth_hist(all_Bs,
                       nb_states = 2,

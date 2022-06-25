@@ -52,14 +52,14 @@ def extrack_2_matrix(all_Css, pred_Bss, dt, all_frames = None):
             track_ID+=1
     return matrix
 
-def extrack_2_pandas(tracks, pred_Bs, frames = None, opt_metrics = {}):
+def extrack_2_pandas(all_tracks, pred_Bs, frames = None, opt_metrics = {}):
     '''
     turn outputs form ExTrack to a unique pandas DataFrame
     '''
     if frames is None:
         frames = {}
-        for l in tracks:
-            frames[l] = np.repeat(np.array([np.arange(int(l))]), len(tracks[l]), axis = 0)
+        for l in all_tracks:
+            frames[l] = np.repeat(np.array([np.arange(int(l))]), len(all_tracks[l]), axis = 0)
     
     track_list = []
     frames_list = []
@@ -70,11 +70,11 @@ def extrack_2_pandas(tracks, pred_Bs, frames = None, opt_metrics = {}):
     
     cur_nb_track = 0
     pred_Bs_list = []
-    for l in tracks:
-        track_list = track_list + list(tracks[l].reshape(tracks[l].shape[0] * tracks[l].shape[1], 2))
+    for l in all_tracks:
+        track_list = track_list + list(all_tracks[l].reshape(all_tracks[l].shape[0] * all_tracks[l].shape[1], 2))
         frames_list = frames_list + list(frames[l].reshape(frames[l].shape[0] * frames[l].shape[1], 1))
-        track_ID_list = track_ID_list + list(np.repeat(np.arange(cur_nb_track,cur_nb_track+tracks[l].shape[0]),tracks[l].shape[1]))
-        cur_nb_track += tracks[l].shape[0]
+        track_ID_list = track_ID_list + list(np.repeat(np.arange(cur_nb_track,cur_nb_track+all_tracks[l].shape[0]),all_tracks[l].shape[1]))
+        cur_nb_track += all_tracks[l].shape[0]
         
         for j, metric in enumerate(opt_metrics):
             opt_metrics_list[j] = opt_metrics_list[j] + list(opt_metrics[metric][l].reshape(opt_metrics[metric][l].shape[0] * opt_metrics[metric][l].shape[1], 1))
@@ -98,7 +98,7 @@ def extrack_2_pandas(tracks, pred_Bs, frames = None, opt_metrics = {}):
 
     return df
 
-def save_extrack_2_CSV(path, all_Css, pred_Bss, dt, all_frames = None):
+def save_extrack_2_CSV(path, all_tracks, pred_Bss, dt, all_frames = None):
     track_ID = 0
     
     preds_header_str_fmt = ''
@@ -110,23 +110,27 @@ def save_extrack_2_CSV(path, all_Css, pred_Bss, dt, all_frames = None):
     with open(path, 'w') as f:
         f.write('TRACK_ID,POSITION_X,POSITION_Y,POSITION_Z,POSITION_T,FRAME,%s\n'%(preds_header_str_fmt))
     
-        for len_ID in all_Css:
-            all_Cs = all_Css[len_ID]
+        for len_ID in all_tracks:
+            nb_dims = all_tracks[len_ID].shape[2]
+            tracks = np.zeros((all_tracks[len_ID].shape[0], all_tracks[len_ID].shape[1], 3)) # create 3D tracks with values 0 in unknown dims
+            tracks[:,:, :nb_dims] = all_tracks[len_ID]
             pred_Bs = pred_Bss[len_ID]
             if all_frames != None:
                 all_frame = all_frames[len_ID]
             else:
-                all_frame = np.arange(all_Cs.shape[0]*all_Cs.shape[1]).reshape((all_Cs.shape[0],all_Cs.shape[1])) 
-            for track, preds, frames in zip(all_Cs, pred_Bs, all_frame):
+                all_frame = np.arange(tracks.shape[0]*tracks.shape[1]).reshape((tracks.shape[0],tracks.shape[1])) 
+            for track, preds, frames in zip(tracks, pred_Bs, all_frame):
                 track_ID+=1
                 for pos, p, frame in zip(track, preds, frames):
                     preds_str = preds_str_fmt%(tuple(p))
-                    f.write('%s,%s,%s,%s,%s,%s%s\n'%(track_ID, p[0], p[1], 0.0, dt* frame*1000, frame, preds_str))
+                    f.write('%s,%s,%s,%s,%s,%s%s\n'%(track_ID, pos[0], pos[1], pos[2], dt* frame*1000, frame, preds_str))
+
 def save_extrack_2_xml(all_tracks, pred_Bss, params, path, dt, all_frames = None, opt_metrics = {}):
     track_ID = 0
     for len_ID in all_tracks:
        tracks = all_tracks[len_ID]
        track_ID += len(tracks)
+    nb_dims = all_tracks[len_ID].shape[2]
     
     final_params = []
     for param in params:
@@ -135,7 +139,7 @@ def save_extrack_2_xml(all_tracks, pred_Bss, params, path, dt, all_frames = None
     Extrack_headers = 'ExTrack_results="'
     
     for param in final_params:
-        Extrack_headers = Extrack_headers + param + "='" + str(np.round(params[param].value, -np.log10(params[param].value).astype(int)+5)) +"' " 
+        Extrack_headers = Extrack_headers + param + "='" + str(np.round(params[param].value, 8)) +"' " 
     Extrack_headers += '"'
     
     preds_str_fmt = ''
@@ -151,7 +155,8 @@ def save_extrack_2_xml(all_tracks, pred_Bss, params, path, dt, all_frames = None
         f.write('<?xml version="1.0" encoding="UTF-8"?>\n<Tracks nTracks="%s" spaceUnits="µm" frameInterval="%s" timeUnits="ms" %s>\n'%(track_ID, dt, Extrack_headers))
         
         for len_ID in all_tracks:
-            tracks = all_tracks[len_ID]
+            tracks = np.zeros((all_tracks[len_ID].shape[0], all_tracks[len_ID].shape[1], 3))
+            tracks[:,:, :nb_dims] = all_tracks[len_ID]
             pred_Bs = pred_Bss[len_ID]
             opt_met = np.empty((tracks.shape[0],tracks.shape[1],len(opt_metrics)))
             for i, m in enumerate(opt_metrics):
@@ -167,6 +172,6 @@ def save_extrack_2_xml(all_tracks, pred_Bss, params, path, dt, all_frames = None
                 for pos, p, frame, track_opt_met in zip(track, preds, frames, track_opt_met):
                     preds_str = preds_str_fmt%(tuple(p))
                     opt_metrics_str = opt_metrics_fmt%(tuple(track_opt_met))
-                    f.write('    <detection t="%s" x="%s" y="%s" z="%s"%s %s/>\n'%(frame,p[0],p[1],0.0, preds_str, opt_metrics_str))
+                    f.write('    <detection t="%s" x="%s" y="%s" z="%s"%s %s/>\n'%(frame,pos[0],pos[1],pos[2], preds_str, opt_metrics_str))
                 f.write('  </particle>\n')
         f.write('</Tracks>\n')

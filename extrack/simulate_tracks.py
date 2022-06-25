@@ -123,10 +123,12 @@ def is_in_FOV(positions, cell_dims):
 def sim_FOV(nb_tracks=10000,
             max_track_len=40,
             min_len = 2,
-            LocErr=0.02,
+            LocErr=0.02, # localization error in x, y and z (even if not used)
             Ds = np.array([0,0.05]),
+            nb_dims = 2,
             initial_fractions = np.array([0.6,0.4]),
             TrMat = np.array([[0.9,0.1],[0.1,0.9]]),
+            LocErr_std = 0,
             dt = 0.02,
             pBL = 0.1, 
             cell_dims = [0.5,None,None]): # dimension limits in x, y and z respectively
@@ -147,6 +149,12 @@ def sim_FOV(nb_tracks=10000,
     all_tracks: dict describing the tracks with track length as keys (number of time positions, e.g. '23') of 3D arrays: dim 0 = track, dim 1 = time position, dim 2 = x, y position.
     all_Bs: dict descibing the true states of tracks with track length as keys (number of time positions, e.g. '23') of 3D arrays: dim 0 = track, dim 1 = time position, dim 2 = x, y position.    
     '''
+
+    if type(LocErr) != np.ndarray:
+        LocErr = np.array(LocErr)
+        if LocErr.shape == ():
+            LocErr = LocErr[None]
+    
     nb_sub_steps = 20
     nb_strobo_frames = 1
     nb_states = len(TrMat)
@@ -159,10 +167,11 @@ def sim_FOV(nb_tracks=10000,
     
     all_Css = [[]]*(max_track_len - min_len + 1)
     all_Bss = [[]]*(max_track_len - min_len + 1)
+    all_sigs = [[]]*(max_track_len - min_len + 1)
     
     nb_tracks = 2**np.sum(cell_dims!=None)*nb_tracks
     states = markovian_process(TrSubMat, initial_fractions, nb_tracks, (max_track_len) * nb_sub_steps)
-    cell_dims0 = np.copy(cell_dims)   
+    cell_dims0 = np.copy(cell_dims)
     cell_dims0[cell_dims0==None] = 1
     
     for state in states:
@@ -195,15 +204,20 @@ def sim_FOV(nb_tracks=10000,
                 cur_sub_state = cur_sub_state[:np.argmax(pBLs)+1]
                 inFOV = np.array([False])
             
-            cur_sub_track = cur_sub_track + np.random.normal(0, LocErr, (len(cur_sub_track), 3))
+            k = 2 / (LocErr_std**2+1e-20) # compute the parameter of the chi2 distribution with results in the specified standard deviation
+            cur_sub_sigmas = np.random.chisquare(k, (len(cur_sub_track), 3)) * LocErr[None] / k
+            cur_sub_errors = np.random.normal(0, cur_sub_sigmas, (len(cur_sub_track), 3))
+            cur_real_pos = np.copy(cur_sub_track)
+            cur_sub_track = cur_sub_track + cur_sub_errors
             #cur_sub_track = cur_sub_track + np.random.normal(0, std_spurious, (len(cur_sub_track), 3)) * (np.random.rand(len(cur_sub_track),1)<p_spurious)
     
             arg_add = np.argwhere(np.arange(min_len,max_track_len+1)==len(cur_sub_track))
             
             for a in arg_add:
-                all_Css[a[0]] = all_Css[a[0]] + [cur_sub_track[:,:2]]
+                all_Css[a[0]] = all_Css[a[0]] + [cur_sub_track[:,:nb_dims]]
                 all_Bss[a[0]] = all_Bss[a[0]] + [cur_sub_state]
-            
+                all_sigs[a[0]] = all_sigs[a[0]] + [cur_sub_sigmas[:,:nb_dims]]
+
             positions = positions[np.argmin(inFOV):]
             state = state[np.argmin(inFOV):]
             inFOV = inFOV[np.argmin(inFOV):]
@@ -212,16 +226,19 @@ def sim_FOV(nb_tracks=10000,
     for k in range(len(all_Css)):
         all_Css[k] = np.array(all_Css[k])
         all_Bss[k] = np.array(all_Bss[k])
+        all_sigs[k] = np.array(all_sigs[k])
         if len(all_Css[k])>0:
             print(str(all_Css[k].shape[1])+' pos :',str(len(all_Css[k]))+', ', end = '')
     print('')
     
     all_Css_dict = {}
     all_Bss_dict = {}
-    for Cs, Bs in zip(all_Css, all_Bss):
+    all_sigs_dict = {}
+    for Cs, Bs, sigs in zip(all_Css, all_Bss, all_sigs):
         if Cs.shape[0] > 0:
             l = str(Cs.shape[1])
             all_Css_dict[l] = Cs
-            all_Bss_dict[l] = Bs     
-        
-    return all_Css_dict, all_Bss_dict
+            all_Bss_dict[l] = Bs    
+            all_sigs_dict[l] = sigs
+
+    return all_Css_dict, all_Bss_dict, all_sigs_dict

@@ -9,9 +9,11 @@ def visualize_states_durations(all_tracks,
                                cell_dims = [1,None,None],
                                nb_states = 2,
                                max_nb_states = 500,
+                               workers = 1,
                                long_tracks = True,
                                nb_steps_lim = 20,
-                               steps = False):
+                               steps = False,
+                               input_LocErr = None):
     '''
     arguments:
     all_tracks: dict describing the tracks with track length as keys (number of time positions, e.g. '23') of 3D arrays: dim 0 = track, dim 1 = time position, dim 2 = x, y position.
@@ -26,8 +28,16 @@ def visualize_states_durations(all_tracks,
     outputs:
     plot of all tracks (preferencially input a single movie)
     '''
-    len_hists = len_hist(all_tracks, params, dt, cell_dims=cell_dims, nb_states=nb_states, nb_substeps=1, max_nb_states = max_nb_states)
-        
+    len_hists = len_hist(all_tracks,
+                         params,
+                         dt,
+                         cell_dims=cell_dims,
+                         nb_states=nb_states,
+                         workers = 1,
+                         nb_substeps=1,
+                         max_nb_states = max_nb_states,
+                         input_LocErr = input_LocErr)
+    
     if steps:
         step_type = 'step'
         dt = 1
@@ -46,7 +56,6 @@ def visualize_states_durations(all_tracks,
     plt.xlabel('state duration (%s)'%(step_type))
     plt.ylabel('fraction')
     plt.tight_layout()
-    return len_hists
 
 def visualize_tracks(DATA,
                      track_length_range = [10,np.inf],

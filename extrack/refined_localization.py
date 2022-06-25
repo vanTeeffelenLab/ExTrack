@@ -23,9 +23,11 @@ try:
 except:
     pass
 
-from extrack.tracking import extract_params,predict_Bs, P_Cs_inter_bound_stats, log_integrale_dif, first_log_integrale_dif, ds_froms_states, fuse_tracks, get_all_Bs, get_Ts_from_Bs
+from extrack.old_tracking import extract_params, predict_Bs, P_Cs_inter_bound_stats, log_integrale_dif, first_log_integrale_dif, ds_froms_states, fuse_tracks, get_all_Bs, get_Ts_from_Bs
+from extrack.tracking import P_Cs_inter_bound_stats
 from extrack.exporters import extrack_2_matrix
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+
 
 def prod_2GaussPDF(sigma1,sigma2, mu1, mu2):
     sigma = ((sigma1**2*sigma2**2)/(sigma1**2+sigma2**2))**0.5
@@ -254,6 +256,17 @@ def get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len = 7):
 
     return all_pos_means, all_pos_stds, all_pos_weights, all_pos_Bs
 
+def position_refinement(all_tracks, LocErr, ds, Fs, TrMat, frame_len = 7):
+    all_mus = {}
+    all_sigmas = {}
+    for l in all_tracks.keys():
+        Cs = all_tracks[l]
+        all_pos_means, all_pos_stds, all_pos_weights, all_pos_Bs = get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len = 7)
+        best_mus, best_sigs, best_Bs = get_all_estimates(all_pos_weights, all_pos_Bs, all_pos_means, all_pos_stds)
+        all_mus[l] = best_mus
+        all_sigmas[l] = best_sigs
+    return all_mus, all_sigmas
+    
 def get_all_estimates(all_pos_weights, all_pos_Bs, all_pos_means, all_pos_stds):
     nb_Bs = []
     nb_pos = len(all_pos_weights)
@@ -476,6 +489,8 @@ def get_best_estimates(Cs, LocErr, ds, Fs, TrMat, frame_len = 10):
     all_mus.append(mus)
     all_sigs.append(sigs)
     return mus, sigs
+
+
 
 def do_gifs_from_params(all_tracks, params, dt, gif_pathnames = './tracks', frame_len = 9, nb_states = 2, nb_pix = 200, fps = 1):
     for Cs in all_tracks:
