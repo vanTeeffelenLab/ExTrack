@@ -122,7 +122,7 @@ def is_in_FOV(positions, cell_dims):
 
 def sim_FOV(nb_tracks=10000,
             max_track_len=40,
-            min_len = 2,
+            min_track_len = 2,
             LocErr=0.02, # localization error in x, y and z (even if not used)
             Ds = np.array([0,0.05]),
             nb_dims = 2,
