@@ -4,7 +4,7 @@ import pandas as pd
 
 def read_trackmate_xml(paths, # path (string specifying the path of the file or list of paths in case of multiple files.
                        lengths=np.arange(5,40), # track lengths kept.
-                       dist_th = 0.3, # maximum distance between consecutive peaks of a track.
+                       dist_th = 0.5, # maximum distance between consecutive peaks of a track.
                        frames_boundaries = [-np.inf, np.inf], # min and max frame values allowed for peak detection
                        remove_no_disp = True, # removes tracks showing no motion if True.
                        opt_metrics_names = ['t', 'x'], # e.g. ['pred_0', 'pred_1'],
@@ -99,8 +99,8 @@ def read_trackmate_xml(paths, # path (string specifying the path of the file or 
     return traces, frames, opt_metrics
 
 def read_table(paths, # path of the file to read or list of paths to read multiple files.
-               lengths = np.arange(5,16), # number of positions per track accepted (take the first position if longer than max
-               dist_th = 0.3, # maximum distance allowed for consecutive positions 
+               lengths = np.arange(5,40), # number of positions per track accepted (take the first position if longer than max
+               dist_th = 0.5, # maximum distance allowed for consecutive positions 
                frames_boundaries = [-np.inf, np.inf], # min and max frame values allowed for peak detection
                fmt = 'csv', # format of the document to be red, 'csv' or 'pkl', one can also just specify a separator e.g. ' '. 
                colnames = ['POSITION_X', 'POSITION_Y', 'FRAME', 'TRACK_ID'], 
