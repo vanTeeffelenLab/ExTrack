@@ -3,7 +3,9 @@ ExTrack
 
 This repository contains the necessary scripts to run the method ExTrack. ExTrack is a method to detemine kinetics of particles able to transition between different motion states. It can assess diffusion coefficients, transition rates, localization error as well as annotating the probability for any track to be in each state for every time points. It can produce histograms of durations in each state to highlight no markovian transition kinetics. Eventually it can be used to refine the localization precision of tracks by considering the most likely positions which is especially efficient when the particle do not move.
 
-ExTrack has been designed and implemented by François Simon in the laboratory of Sven van Teeffelen at University of Montreal. The python implementation of ExTrack can profite from GPU parallelization using the cupy library. A version of reduced functionality of ExTrack is available on Fiji via Trackmate thanks to Jean-Yves Tinevez https://sites.imagej.net/TrackMate-ExTrack/. See the Wiki section for more information on how to install and use ExTrack. The Fiji version can also profite from CPU parallelization better performances.
+ExTrack has been designed and implemented by François Simon in the laboratory of Sven van Teeffelen at University of Montreal. ExTrack is primarerly implemented as a python package. An additional version of ExTrack is available on Fiji via Trackmate thanks to Jean-Yves Tinevez with reduced functionality https://sites.imagej.net/TrackMate-ExTrack/. 
+
+See the Wiki section for more information on how to install and use ExTrack.
 
 https://pypi.org/project/extrack/
 
@@ -27,15 +29,15 @@ Optional: jupyter, cupy
 
 ## Install ExTrack
 
-`pip install extrack` (Don't use this now as it is not updated)
+`pip install extrack`
 
 https://pypi.org/project/extrack/
 
-the version 1.4 has an oudated version for the histograms script, replace it with histograms.py from the git repository if you want it to work correctly.
+the current version (1.5) has working but oudated version of the position refinement method. It may only work for 2-state models. This will be updated as soon as possible.
 
 ## Input file format
 
-all_tracks: dict describing the tracks with track length as keys (number of time positions, e.g. '23') of 3D arrays: dim 0 = track, dim 1 = time position, dim 2 = x, y position.
+ExTrack can deal with tracks saved with TrackMate xml format or csv format by using the integrated readers https://github.com/vanTeeffelenLab/ExTrack/wiki/Loading-data-sets.
 
 # Installation from this GitHub repository
 
@@ -61,9 +63,21 @@ Need to install git if not already installed.
 
 # Tutorial
 
-Test codes can be found at these location: 
+Tutorials for the python package of ExTrack are available.
+
+A first tutorial allows the user to have an overview of all the possibilities of the different modules of ExTrack (https://github.com/vanTeeffelenLab/ExTrack/blob/main/Tutorials/Tutorial_ExTrack.ipynb). This jupyter notebook tutorial shows the whole pipeline:
+- Loading data sets (https://github.com/vanTeeffelenLab/ExTrack/wiki/Loading-data-sets).
+- Initialize parameters of the model (https://github.com/vanTeeffelenLab/ExTrack/wiki/Parameters-for-fitting).
+- Fitting.
+- Probabilistic state annotation.
+- Histograms of state duration.
+- Position refinement.
+- Saving results.
+
+from loading data sets to saving results
+at these location: 
 - tests/test_extrack.py
-- or tests/tutorial_extrack.ipynb
+- or Tutorials/tutorial_extrack.ipynb
 
 These contain the most important modules in a comprehensive framework. We recommand following the tutorial tutorial_extrack.ipynb which uses Jupyter notebook as it is more didactic. One has to install jupyter to use it: `pip install jupyter` in the anaconda prompt for conda users. 
 
