@@ -138,3 +138,7 @@ Francois Simon
 
 # Bugs/suggestions
 Send to bugtracker or to email.
+
+# to do
+
+- Matrix generators
