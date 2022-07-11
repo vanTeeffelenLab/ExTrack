@@ -602,23 +602,22 @@ def extract_params(params, dt, nb_states, nb_substeps, input_LocErr = None):
     
     TrMat = TrMat/nb_substeps
     
-    case = 1
-    if case == 0:
+    if Matrix_type == 0:
         TrMat[np.arange(len(Ds)), np.arange(len(Ds))] = 1-np.sum(TrMat,1)
-    if case == 1: # 1 - exp(-)
+    if Matrix_type == 1: # 1 - exp(-)
         TrMat = 1 - np.exp(-TrMat)
         TrMat[np.arange(len(Ds)), np.arange(len(Ds))] = 1-np.sum(TrMat,1)
-    elif case == 2:
+    elif Matrix_type == 2:
         TrMat[np.arange(len(Ds)), np.arange(len(Ds))] = -np.sum(TrMat,1)
         TrMat = linalg.expm(TrMat)
-    elif case == 3:
+    elif Matrix_type == 3:
         TrMat[np.arange(len(Ds)), np.arange(len(Ds))] = 0
         G = np.copy(TrMat)
         TrMat[np.arange(len(Ds)), np.arange(len(Ds))] = 1-np.sum(TrMat,1)
         G[np.arange(len(Ds)), np.arange(len(Ds))] = -np.sum(G,1)
         TrMatG = linalg.expm(G)
         TrMat = np.mean([TrMat, TrMatG], axis = 0)
-    elif case == 4:
+    elif Matrix_type == 4:
         TrMat[np.arange(len(Ds)), np.arange(len(Ds))] = 0
         G = np.copy(TrMat)
         TrMat[np.arange(len(Ds)), np.arange(len(Ds))] = 1-np.sum(TrMat,1)
@@ -635,7 +634,7 @@ def extract_params(params, dt, nb_states, nb_substeps, input_LocErr = None):
 def pool_star_proba(args):
     return Proba_Cs(*args)
 
-def cum_Proba_Cs(params, all_tracks, dt, cell_dims, input_LocErr, nb_states, nb_substeps, frame_len, verbose = 1, workers = 1):
+def cum_Proba_Cs(params, all_tracks, dt, cell_dims, input_LocErr, nb_states, nb_substeps, frame_len, verbose = 1, workers = 1, Matrix_type = 1):
     '''
     each probability can be multiplied to get a likelihood of the model knowing
     the parameters LocErr, D0 the diff coefficient of state 0 and F0 fraction of
@@ -645,7 +644,7 @@ def cum_Proba_Cs(params, all_tracks, dt, cell_dims, input_LocErr, nb_states, nb_
     '''
     t0 = time()
     
-    LocErr, ds, Fs, TrMat, pBL = extract_params(params, dt, nb_states, nb_substeps, input_LocErr)
+    LocErr, ds, Fs, TrMat, pBL = extract_params(params, dt, nb_states, nb_substeps, input_LocErr, Matrix_type)
     # LocErr[0,0,1] = 0.028
     '''if input_LocErr != None:
         LocErr = input_LocErr
@@ -924,6 +923,7 @@ def param_fitting(all_tracks,
                   frame_len = 5,
                   verbose = 1,
                   workers = 1,
+                  Matrix_type = 1,
                   method = 'powell',
                   steady_state = False,
                   cell_dims = [1], # list of dimensions limit for the field of view (FOV) of the cell in um, a membrane protein in a typical e-coli cell in tirf would have a cell_dims = [0.5,3], in case of cytosolic protein one should imput the depth of the FOV e.g. [0.3] for tirf or [0.8] for hilo
@@ -1016,7 +1016,7 @@ def param_fitting(all_tracks,
         print('Warning frame_len has to be at least nb_substeps + 1')
         frame_len = nb_substeps + 1
     
-    fit = minimize(cum_Proba_Cs, params, args=(all_tracks, dt, cell_dims,input_LocErr, nb_states, nb_substeps, frame_len, verbose, workers), method = method, nan_policy = 'propagate')
+    fit = minimize(cum_Proba_Cs, params, args=(all_tracks, dt, cell_dims,input_LocErr, nb_states, nb_substeps, frame_len, verbose, workers, Matrix_type), method = method, nan_policy = 'propagate')
     if verbose == 0:
         print('')
     return fit
