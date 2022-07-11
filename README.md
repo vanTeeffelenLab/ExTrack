@@ -141,4 +141,6 @@ Send to bugtracker or to email.
 
 # to do
 
-- Matrix generators
+- Matrix generators.
+- Redo the script for Refined positions to match the current version.
+- Try approximations based on 'm' and 's' values instead of fixed window length.
