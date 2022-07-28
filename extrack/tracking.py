@@ -562,7 +562,7 @@ def predict_Bs(all_tracks,
 
     return all_pred_Bs_dict
 
-def extract_params(params, dt, nb_states, nb_substeps, input_LocErr = None):
+def extract_params(params, dt, nb_states, nb_substeps, input_LocErr = None, Matrix_type = 1):
     '''
     turn the parameters which differ deppending on the number of states into lists
     ds (diffusion lengths), Fs (fractions), TrMat (substep transiton matrix)
