@@ -57,11 +57,11 @@ ExTrack can deal with tracks saved with TrackMate xml format or csv format by us
 
 Need to install git if not already installed.
 
-`git clone https://github.com/FrancoisSimon/ExTrack-python3.git` One can also just manually download the package if git is not install
+`git clone https://github.com/vanTeeffelenLab/ExTrack.git` One can also just manually download the package if git is not installed. Once extracted the folder may be named ExTrack-main
 
-`cd ExTrack-python3`
+`cd ExTrack` or cd `ExTrack-main`
 
-`python setup.py install` from the ExTrack-python3 directory
+`python setup.py install` from the ExTrack directory
 
 # Tutorial
 
