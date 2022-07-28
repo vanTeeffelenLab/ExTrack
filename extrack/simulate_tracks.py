@@ -143,7 +143,7 @@ def sim_FOV(nb_tracks=10000,
     dt: time in between frames.
     pBL: probability of bleaching per step.
     cell_dims: dimension limits in x, y and z respectively. x, y dimension limits are useful when tracking membrane proteins in tirf when the particles leave the field of view from the sides of the cells. z dimension is relevant for cytoplasmic proteins which call leave from the z axis. Consider the particle can leave from both ends of each axis: multiply axis limit by 2 to aproximate tracks leaving from one end.
-    min_len: minimal track length for the track to be considered.
+    min_track_len: minimal track length for the track to be considered.
     
     outputs:
     all_tracks: dict describing the tracks with track length as keys (number of time positions, e.g. '23') of 3D arrays: dim 0 = track, dim 1 = time position, dim 2 = x, y position.
@@ -165,9 +165,9 @@ def sim_FOV(nb_tracks=10000,
     TrSubMat[np.arange(nb_states),np.arange(nb_states)] = 0
     TrSubMat[np.arange(nb_states),np.arange(nb_states)] = 1 - np.sum(TrSubMat,1)
     
-    all_Css = [[]]*(max_track_len - min_len + 1)
-    all_Bss = [[]]*(max_track_len - min_len + 1)
-    all_sigs = [[]]*(max_track_len - min_len + 1)
+    all_Css = [[]]*(max_track_len - min_track_len + 1)
+    all_Bss = [[]]*(max_track_len - min_track_len + 1)
+    all_sigs = [[]]*(max_track_len - min_track_len + 1)
     
     nb_tracks = 2**np.sum(cell_dims!=None)*nb_tracks
     states = markovian_process(TrSubMat, initial_fractions, nb_tracks, (max_track_len) * nb_sub_steps)
@@ -211,7 +211,7 @@ def sim_FOV(nb_tracks=10000,
             cur_sub_track = cur_sub_track + cur_sub_errors
             #cur_sub_track = cur_sub_track + np.random.normal(0, std_spurious, (len(cur_sub_track), 3)) * (np.random.rand(len(cur_sub_track),1)<p_spurious)
     
-            arg_add = np.argwhere(np.arange(min_len,max_track_len+1)==len(cur_sub_track))
+            arg_add = np.argwhere(np.arange(min_track_len,max_track_len+1)==len(cur_sub_track))
             
             for a in arg_add:
                 all_Css[a[0]] = all_Css[a[0]] + [cur_sub_track[:,:nb_dims]]
