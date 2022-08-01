@@ -838,7 +838,7 @@ def get_params(nb_states = 2,
     [params.add(**param_kwargs[k]) for k in range(len(param_kwargs))]
     return params
 
-def generate_params(nb_states = 3,
+def generate_params(nb_states = 2,
                     LocErr_type = 1,
                     nb_dims = 3, # only matters if LocErr_type == 2,
                     LocErr_bounds = [0.005, 0.1], # the initial guess on LocErr will be the geometric mean of the boundaries
