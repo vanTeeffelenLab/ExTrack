@@ -996,7 +996,7 @@ def param_fitting(all_tracks,
         params = generate_params(nb_states = nb_states,
                                LocErr_type = 1,
                                LocErr_bounds = [0.005, 0.1], # the initial guess on LocErr will be the geometric mean of the boundaries
-                               d_max = 3, # maximal diffusion length allowed
+                               D_max = 3, # maximal diffusion length allowed
                                Fractions_bounds = [0.001, 0.99],
                                estimated_transition_rates = 0.1 # transition rate per step.
                                )
