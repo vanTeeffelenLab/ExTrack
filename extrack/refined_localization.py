@@ -261,10 +261,13 @@ def position_refinement(all_tracks, LocErr, ds, Fs, TrMat, frame_len = 7):
     all_sigmas = {}
     for l in all_tracks.keys():
         Cs = all_tracks[l]
+        all_mus[l] = np.zeros((Cs.shape[0], int(l), Cs.shape[2]))
+        all_sigmas[l] = np.zeros((Cs.shape[0], int(l)))
         all_pos_means, all_pos_stds, all_pos_weights, all_pos_Bs = get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len = 7)
-        best_mus, best_sigs, best_Bs = get_all_estimates(all_pos_weights, all_pos_Bs, all_pos_means, all_pos_stds)
-        all_mus[l] = best_mus
-        all_sigmas[l] = best_sigs
+        #best_mus, best_sigs, best_Bs = get_all_estimates(all_pos_weights, all_pos_Bs, all_pos_means, all_pos_stds)
+        for k, (pos_means, pos_stds, pos_weights) in enumerate(zip(all_pos_means, all_pos_stds, all_pos_weights)):
+            all_mus[l][:, k] = np.sum(pos_weights[:,:,None]*pos_means, 1) / np.sum(pos_weights, 1)[:,None]
+            all_sigmas[l][:, k] = (np.sum(pos_weights[:,:]*pos_stds[:,:,0]**2, 1) / np.sum(pos_weights, 1))**0.5
     return all_mus, all_sigmas
     
 def get_all_estimates(all_pos_weights, all_pos_Bs, all_pos_means, all_pos_stds):
