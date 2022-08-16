@@ -149,6 +149,7 @@ def P_Cs_inter_bound_stats(Cs, LocErr, ds, Fs, TrMat, pBL=0.1, isBL = 1, cell_di
     cur_nb_Bs = cur_Bs.shape[1]
     # compute the vector of diffusion stds knowing the current states
     ds = cp.array(ds)
+    ds2 = ds**2
     Fs = cp.array(Fs)
     
     LT = get_Ts_from_Bs(cur_states, TrMat) # Log proba of transitions per step
@@ -157,7 +158,7 @@ def P_Cs_inter_bound_stats(Cs, LocErr, ds, Fs, TrMat, pBL=0.1, isBL = 1, cell_di
     LP = LT + LF #+ compensate_leaving
     # current log proba of seeing the track
     LP = cp.repeat(LP, nb_Tracks, axis = 0)
-    cur_d2s = ds[cur_states]**2
+    cur_d2s = ds2[cur_states]
     cur_d2s = (cur_d2s[:,:,1:] + cur_d2s[:,:,:-1]) / 2 # assuming a transition at the middle of the substeps
 
     # we can average the variances of displacements per step to get the actual std of displacements per step
