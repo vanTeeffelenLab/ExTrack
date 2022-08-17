@@ -289,6 +289,10 @@ def get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len = 7, threshold = 0.2, max_n
     return all_pos_means, all_pos_stds, all_pos_weights
 
 def position_refinement(all_tracks, LocErr, ds, Fs, TrMat, frame_len = 7, threshold = 0.1, max_nb_states = 1000):
+    if type(LocErr) == float:
+        LocErr = np.array([[[LocErr]]])
+    elif len(LocErr.shape) == 1:
+        LocErr = LocErr[None, None]
     all_mus = {}
     all_sigmas = {}
     for l in all_tracks.keys():
@@ -300,9 +304,6 @@ def position_refinement(all_tracks, LocErr, ds, Fs, TrMat, frame_len = 7, thresh
         for k, (pos_means, pos_stds, pos_weights) in enumerate(zip(all_pos_means, all_pos_stds, all_pos_weights)):
             P = np.exp(pos_weights - np.max(pos_weights, 1, keepdims = True))
             all_mus[l][:, k] = np.sum(P[:,:,None]*pos_means, 1) / np.sum(P, 1)[:,None]
-            if k ==48:
-                print(pos_means[2])
-                print(all_mus[l][:, k])
             all_sigmas[l][:, k] = (np.sum(P[:,:]*pos_stds[:,:,0]**2, 1) / np.sum(P, 1))**0.5
     return all_mus, all_sigmas
 
@@ -322,7 +323,7 @@ def get_all_estimates(all_pos_weights, all_pos_Bs, all_pos_means, all_pos_stds):
     for k, (weights, Bs, mus, sigs)  in enumerate(zip(all_pos_weights, all_pos_Bs, all_pos_means, all_pos_stds)):
         if k <= nb_pos/2 :
             idx = np.min([k, mid_frame_pos])
-        else :
+        else:
             idx = np.max([-mid_frame_pos-1, k - nb_pos])
         best_args = np.argmax(weights, 1)
         best_Bs.append(Bs[0,best_args][:,idx])
