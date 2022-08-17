@@ -179,7 +179,7 @@ def get_LC_Km_Ks(Cs, LocErr, ds, Fs, TrMat, nb_substeps=1, frame_len = 4, thresh
             removed_steps += 1
            
         current_step += 1
-        print(current_step)
+        #print(current_step)
         all_Km.append(Km)
         all_Ks.append(Ks**0.5)
         all_LP.append(LP)
