@@ -415,6 +415,8 @@ def fuse_tracks_general(m_arr, s2_arr, LP, cur_Bs, cur_len, nb_Tracks, fuse_pos,
     
     return new_m_arr, new_s2_arr, new_LP, new_cur_Bs
 
+#Cs, LocErr, ds, Fs, TrMat,pBL,isBL, cell_dims, nb_substeps, frame_len, min_len, threshold, max_nb_states = args_prod[0]
+
 def P_Cs_inter_bound_stats_th(Cs, LocErr, ds, Fs, TrMat, pBL=0.1, isBL = 1, cell_dims = [0.5], nb_substeps=1, frame_len = 6, do_preds = 0, min_len = 3, threshold = 0.2, max_nb_states = 120):
     '''
     compute the product of the integrals over Ri as previousily described
@@ -562,6 +564,7 @@ def P_Cs_inter_bound_stats_th(Cs, LocErr, ds, Fs, TrMat, pBL=0.1, isBL = 1, cell
             m_arr, s2_arr, LP, cur_Bs = fuse_tracks_general(m_arr, s2_arr, LP, cur_Bs, cur_len, nb_Tracks, fuse_pos, nb_states = nb_states, nb_dims = nb_dims)
 
         cur_nb_Bs = len(cur_Bs[0]) # current number of sequences of states
+        #print(current_step, m_arr.shape)
         
         if cur_nb_Bs>max_nb_states:
             threshold = threshold*1.2
@@ -620,12 +623,17 @@ def P_Cs_inter_bound_stats_th(Cs, LocErr, ds, Fs, TrMat, pBL=0.1, isBL = 1, cell
         current_step += 1
     
     #print(m_arr.shape)
-    print(time()-t0)
+    #print(time()-t0)
     
     if not isBL:
         LL = 0
     else:
-        cur_Bs = get_all_Bs(np.round(np.log(cur_nb_Bs)/np.log(nb_states)+nb_substeps).astype(int), nb_states)[None]
+        for iii in range(nb_substeps):
+            #cur_Bs = np.concatenate((np.repeat(np.mod(np.arange(cur_Bs.shape[1]*nb_states),nb_states)[None,:,None], nb_Tracks, 0), np.repeat(cur_Bs,nb_states,1)),-1)
+            cur_Bs = np.concatenate((np.mod(np.arange(cur_Bs.shape[1]*nb_states),nb_states)[None,:,None], np.repeat(cur_Bs,nb_states,1)),-1)
+            new_states = np.repeat(np.mod(np.arange(cur_Bs_cat.shape[1]*nb_states, dtype = 'int8'),nb_states)[None,:,None,None] == np.arange(nb_states, dtype = 'int8')[None,None,None], cur_Bs_cat.shape[0], 0).astype('int8')
+            cur_Bs_cat = np.concatenate((new_states, np.repeat(cur_Bs_cat,nb_states,1)),-2)
+                
         cur_states = cur_Bs[:,:,0:nb_substeps+1].astype(int)
         len(cur_Bs[0])
         LT = get_Ts_from_Bs(cur_states, TrMat)
@@ -1208,7 +1216,7 @@ def cum_Proba_Cs(params, all_tracks, dt, cell_dims, input_LocErr, nb_states, nb_
         else:
             args_prod[:,1] = LocErr
 
-        #Cs, LocErr, ds, Fs, TrMat,pBL,isBL, cell_dims, nb_substeps, frame_len, min_len = args_prod[0]
+        #Cs, LocErr, ds, Fs, TrMat,pBL,isBL, cell_dims, nb_substeps, frame_len, min_len, threshold, max_nb_states = args_prod[0]
         
         if workers >= 2:
             with multiprocessing.Pool(workers) as pool:
@@ -1438,7 +1446,7 @@ def generate_params(nb_states = 3,
     
     return params
 
-#all_tracks = data
+#all_tracks = tracks
 def param_fitting(all_tracks,
                   dt,
                   params = None,
