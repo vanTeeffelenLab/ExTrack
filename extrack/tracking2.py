@@ -167,7 +167,7 @@ def P_Cs_inter_bound_stats(Cs, LocErr, ds, Fs, TrMat, pBL=0.1, isBL = 1, cell_di
     cur_d2s = cp.array(cur_d2s)
     
     sub_Bs = cur_Bs.copy()[:,:cur_Bs.shape[1]//nb_states,:nb_substeps] # list of possible current states we can meet to compute the proba of staying in the FOV
-    sub_ds = (cp.mean(ds[sub_Bs]**2, axis = 2)**0.5).astyep(float) # corresponding list of d
+    sub_ds = (cp.mean(ds[sub_Bs]**2, axis = 2)**0.5) # corresponding list of d
     sub_ds = asnumpy(sub_ds)
     
     p_stay = np.ones(sub_ds.shape[-1])
