@@ -19,6 +19,7 @@ else :
     def asnumpy(x):
         return np.array(x)
 
+import multiprocessing
 import scipy
 from extrack.tracking import extract_params, get_all_Bs, get_Ts_from_Bs, first_log_integrale_dif, log_integrale_dif
 
