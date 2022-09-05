@@ -1540,7 +1540,7 @@ def param_fitting(all_tracks,
     sorted_LocErrs = []
     for l in l_list:
         if len(all_tracks[l]) > 0 :
-            sorted_tracks.append((all_tracks[l] - all_tracks[l][:,:1]).astype('float32'))
+            sorted_tracks.append((all_tracks[l]))
             if input_LocErr != None:
                 sorted_LocErrs.append(input_LocErr[l])
     all_tracks = sorted_tracks
