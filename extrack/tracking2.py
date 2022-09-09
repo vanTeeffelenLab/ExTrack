@@ -1553,4 +1553,13 @@ def param_fitting(all_tracks,
     fit = minimize(cum_Proba_Cs, params, args=(all_tracks, dt, cell_dims,input_LocErr, nb_states, nb_substeps, frame_len, verbose, workers, Matrix_type, threshold, max_nb_states), method = method, nan_policy = 'propagate')
     if verbose == 0:
         print('')
+        
+    '''
+    #to inverse state indexes:
+    for param in params[-13:-1]:
+        i =  idxs[int(param[1])]
+        j =  idxs[int(param[2])]
+        val = float(res[param][3])
+        corr_res['p' + i + j][3] = val
+    '''
     return fit
