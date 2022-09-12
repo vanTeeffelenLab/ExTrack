@@ -33,7 +33,7 @@ def visualize_states_durations(all_tracks,
                          dt,
                          cell_dims=cell_dims,
                          nb_states=nb_states,
-                         workers = 1,
+                         workers = workers,
                          nb_substeps=1,
                          max_nb_states = max_nb_states,
                          input_LocErr = input_LocErr)
