@@ -131,11 +131,14 @@ def read_table(paths, # path of the file to read or list of paths to read multip
         else:
             data = pd.read_csv(path, sep = fmt)
         
-        None_ID = data[colnames[3]] == 'None'
-        max_ID = np.max(data[colnames[3]][data[colnames[3]] != 'None'].astype(int))
-        data.loc[None_ID, colnames[3]] = np.arange(max_ID+1, max_ID+1 + np.sum(None_ID))
-        
-        IDs = data[colnames[3]].astype(int)
+        try:
+            None_ID = (data[colnames[3]] == 'None' ) + pd.isna(data[colnames[3]])
+            max_ID = np.max(data[colnames[3]][(data[colnames[3]] != 'None' ) * (pd.isna(data[colnames[3]]) == False)].astype(int))
+            data.loc[None_ID, colnames[3]] = np.arange(max_ID+1, max_ID+1 + np.sum(None_ID))
+            IDs = data[colnames[3]].astype(int)
+        except:
+            None_ID = (data[colnames[3]] == 'None' ) + pd.isna(data[colnames[3]])
+            data = data.drop(data[None_ID].index)
         
         data = data[colnames + opt_colnames]
         
