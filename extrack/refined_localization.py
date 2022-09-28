@@ -293,6 +293,8 @@ def position_refinement(all_tracks, LocErr, ds, Fs, TrMat, frame_len = 7, thresh
         LocErr = np.array([[[LocErr]]])
     elif len(LocErr.shape) == 1:
         LocErr = LocErr[None, None]
+    if type(LocErr) == np.float64 or type(LocErr) == np.float32:
+        LocErr = np.array([[[LocErr]]])
     all_mus = {}
     all_sigmas = {}
     for l in all_tracks.keys():
