@@ -40,10 +40,10 @@ def read_trackmate_xml(paths, # path (string specifying the path of the file or 
         data = xmltodict.parse(open(path, 'r').read(), encoding='utf-8')
         # Checks
         spaceunit = data['Tracks']['@spaceUnits']
-        if spaceunit not in ('micron', 'um', 'µm', 'Âµm'):
-            raise IOError("Spatial unit not recognized: {}".format(spaceunit))
-        if data['Tracks']['@timeUnits'] != 'ms':
-            raise IOError("Time unit not recognized")
+        #if spaceunit not in ('micron', 'um', 'µm', 'Âµm'):
+        #    raise IOError("Spatial unit not recognized: {}".format(spaceunit))
+        #if data['Tracks']['@timeUnits'] != 'ms':
+        #    raise IOError("Time unit not recognized")
 
         # parameters
         framerate = float(data['Tracks']['@frameInterval'])/1000. # framerate in ms
