@@ -1238,9 +1238,9 @@ def cum_Proba_Cs(params, all_tracks, dt, cell_dims, input_LocErr, nb_states, nb_
     else:
         out = np.inf
         print('x',end='')
-    if out == np.nan:
+    if np.isnan(out):
         out = np.inf
-        print('inputs give nans')
+        print('input parameters give nans, you may want to pick more suitable parameter initial values')
     print(time() - t0)
     return out
 
