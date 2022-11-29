@@ -1557,6 +1557,7 @@ def param_fitting(all_tracks,
     '''
     #to inverse state indexes:
     import copy
+    idxs = [1,0,2,3]
     corr_params = copy.deepcopy(fit.params)
     for param in params[-13:-1]:
         i =  idxs[int(param[1])]
