@@ -1446,6 +1446,72 @@ def generate_params(nb_states = 3,
     
     return params
 
+
+def Maximize(params, var_params, cum_Proba_Cs, args, L):
+    var_params = []
+    for param in params:
+        if params[param].vary == True:
+            var_params.append(param)
+    L = - cum_Proba_Cs(params, *args)
+    best_params = deepcopy(params)
+    best_L = deepcopy(L)
+    
+    history = []
+    history.append({'params': params, 'L': best_L})
+    
+    steps = {}
+    momentum = {}
+    for param in var_params:
+        steps[param] = 0.5
+        momentum[param] = 1
+    
+    while not np.all(np.array(list(steps.values()))<0.01):
+        for param in var_params:
+            
+            cur_steps = [- steps[param] * (params[param].value - params[param].min), steps[param] * (params[param].max - params[param].value)]
+            cur_params = deepcopy(params)
+            
+            cur_params[param].value = params[param].value + cur_steps[momentum[param]]
+            cur_L = - cum_Proba_Cs(cur_params, *args)
+            if cur_L > L:
+                params[param].value = cur_params[param].value
+                L = cur_L
+                history.append({'params': params, 'L': L})
+            else:
+                cur_params[param].value = params[param].value + cur_steps[np.abs(momentum[param]-1)]
+                cur_L = -cum_Proba_Cs(cur_params, *args)
+                if cur_L > L:
+                    params[param].value = cur_params[param].value
+                    L = cur_L
+                    momentum[param] = np.abs(momentum[param]-1)
+                    history.append({'params': params, 'L': L})
+                else: # if none of the values tested are better, we reduce the step size and redo an iteration
+                    steps[param] = steps[param]/2
+                    
+                    step = np.min([steps[param] * (params[param].value - params[param].min), steps[param] * (params[param].max - params[param].value)])
+                    cur_steps = [- step, step]
+                                        
+                    cur_params[param].value = params[param].value + cur_steps[momentum[param]]
+                    cur_L = - cum_Proba_Cs(cur_params, *args)
+                    if cur_L > L:
+                        params[param].value = cur_params[param].value
+                        L = cur_L
+                        history.append({'params': params, 'L': L})
+                    else:
+                        cur_params[param].value = params[param].value + cur_steps[np.abs(momentum[param]-1)]
+                        cur_L = -cum_Proba_Cs(cur_params, *args)
+                        if cur_L > L:
+                            params[param].value = cur_params[param].value
+                            L = cur_L
+                            momentum[param] = np.abs(momentum[param]-1)
+                            history.append({'params': params, 'L': L})
+                        else: # if none of the values tested are better, we reduce the step size and redo an iteration
+                            steps[param] = steps[param]/2
+        print(steps)
+    Likelihood = L
+    return params, Likelihood, history
+
+
 #all_tracks = tracks
 def param_fitting(all_tracks,
                   dt,
