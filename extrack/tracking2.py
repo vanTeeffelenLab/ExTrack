@@ -30,6 +30,13 @@ import scipy
 from lmfit import minimize, Parameters
 
 import multiprocessing
+try:
+    multiprocessing.set_start_method('fork')
+    start_method = 'fork'
+except:
+    print('multiprocessing is only supported on Linux and MacOS')
+    start_method = 'notfork'
+
 from itertools import product
 
 from time import time
@@ -1218,7 +1225,7 @@ def cum_Proba_Cs(params, all_tracks, dt, cell_dims, input_LocErr, nb_states, nb_
 
         #Cs, LocErr, ds, Fs, TrMat,pBL,isBL, cell_dims, nb_substeps, frame_len, min_len, threshold, max_nb_states = args_prod[0]
         
-        if workers >= 2:
+        if workers >= 2 and start_method == 'fork':
             with multiprocessing.Pool(workers) as pool:
                 LP = pool.map(pool_star_proba, args_prod)
         else:
