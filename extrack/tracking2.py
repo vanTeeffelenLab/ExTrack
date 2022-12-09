@@ -1599,6 +1599,7 @@ def param_fitting(all_tracks,
     if not str(all_tracks.__class__) == "<class 'dict'>":
         raise ValueError('all_tracks should be a dictionary of arrays with n there number of steps as keys')
     '''
+    
     if params == None:
         params = generate_params(nb_states = nb_states,
                                LocErr_type = 1,
@@ -1617,6 +1618,9 @@ def param_fitting(all_tracks,
             if input_LocErr != None:
                 sorted_LocErrs.append(input_LocErr[l])
     all_tracks = sorted_tracks
+    if len(all_tracks) < 1:
+        raise ValueError('No track could be detected. The loaded tracks seem empty. Errors often come from wrong input paths.')
+
     if input_LocErr != None:
         input_LocErr = sorted_LocErrs
     #if frame_len <= nb_substeps:
