@@ -1245,6 +1245,9 @@ def cum_Proba_Cs(params, all_tracks, dt, cell_dims, input_LocErr, nb_states, nb_
     else:
         out = np.inf
         print('x',end='')
+        if verbose == 1:
+            q = [param + ' = ' + str(np.round(params[param].value, 4)) for param in params]
+            print(Cum_P, q)
     if np.isnan(out):
         out = np.inf
         print('input parameters give nans, you may want to pick more suitable parameter initial values')
