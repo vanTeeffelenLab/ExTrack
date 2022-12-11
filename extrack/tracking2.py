@@ -1542,7 +1542,7 @@ def param_fitting(all_tracks,
                   verbose = 1,
                   workers = 1,
                   Matrix_type = 1,
-                  method = 'slsqp',
+                  method = 'bfgs',
                   steady_state = False,
                   cell_dims = [1], # list of dimensions limit for the field of view (FOV) of the cell in um, a membrane protein in a typical e-coli cell in tirf would have a cell_dims = [0.5,3], in case of cytosolic protein one should imput the depth of the FOV e.g. [0.3] for tirf or [0.8] for hilo
                   input_LocErr = None, 
