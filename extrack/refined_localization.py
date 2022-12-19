@@ -24,9 +24,9 @@ except:
     pass
 
 #from extrack.old_tracking import extract_params, predict_Bs, P_Cs_inter_bound_stats, log_integrale_dif, first_log_integrale_dif, ds_froms_states, fuse_tracks, get_all_Bs, get_Ts_from_Bs
-from extrack.tracking import extract_params, predict_Bs, P_Cs_inter_bound_stats, log_integrale_dif, first_log_integrale_dif, ds_froms_states, fuse_tracks, get_all_Bs, get_Ts_from_Bs
-from extrack.tracking2 import fuse_tracks_th
-from extrack.tracking import P_Cs_inter_bound_stats
+from extrack.tracking_0 import extract_params, predict_Bs, P_Cs_inter_bound_stats, log_integrale_dif, first_log_integrale_dif, ds_froms_states, fuse_tracks, get_all_Bs, get_Ts_from_Bs
+from extrack.tracking import fuse_tracks_th
+from extrack.tracking_0 import P_Cs_inter_bound_stats
 from extrack.exporters import extrack_2_matrix
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
