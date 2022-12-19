@@ -8,6 +8,7 @@ dt = 0.3
 
 datafolder = '/mnt/c/Users/Franc/Documents/dataset'
 SAVEDIR = '/mnt/c/Users/Franc/Documents/Res'
+workers = 5
 
 if not os.path.exists(SAVEDIR):
     os.mkdir(SAVEDIR)
@@ -50,9 +51,7 @@ for exp in exps:
                             estimated_Fs = [0.3,0.7], # fractions will be equal if None, otherwise input a list of fractions for each state from state 0 to nb_states - 1.
                             estimated_transition_rates = 0.1, # transition rate per step. example [0.1,0.05,0.03,0.07,0.2,0.2] for a 3-state model.
                             )
-    
-    workers = 5
-    
+        
     res = {}
     for param in params:
         res[param] = []
