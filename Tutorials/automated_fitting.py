@@ -6,8 +6,8 @@ from glob import glob
 
 dt = 0.3
 
-datafolder = '/mnt/c/Users/Franc/Documents/dataset'
-SAVEDIR = '/mnt/c/Users/Franc/Documents/Res'
+datafolder = '/mnt/c/Users/username/path/dataset'
+SAVEDIR = '/mnt/c/Users/username/path/Res'
 workers = 5
 
 if not os.path.exists(SAVEDIR):
