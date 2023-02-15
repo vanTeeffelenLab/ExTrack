@@ -834,8 +834,6 @@ def predict_Bs(all_tracks,
         args_prod[:,1] = sigss
     else:
         args_prod[:,1] = LocErr
-
-    #Cs, LocErr, ds, Fs, TrMat,pBL,isBL, cell_dims, nb_substeps, frame_len, do_preds, min_len = args_prod[3]
     
     if workers >= 2:
         with multiprocessing.Pool(workers) as pool:
