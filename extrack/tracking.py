@@ -818,7 +818,7 @@ def predict_Bs(all_tracks,
         Css = all_tracks[k]
         if input_LocErr != None:
             sigs = LocErr[k]
-        nb_max = 50
+        nb_max = 500
         for n in range(int(np.ceil(len(Css)/nb_max))):
             Csss.append(Css[n*nb_max:(n+1)*nb_max])
             if input_LocErr != None:
