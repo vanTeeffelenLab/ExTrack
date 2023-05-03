@@ -151,7 +151,7 @@ def read_table(paths, # path of the file to read or list of paths to read multip
             None_ID = (data[colnames[3]] == 'None' ) + pd.isna(data[colnames[3]])
             data = data.drop(data[None_ID].index)
         
-        IDs = data[colnames[3]]
+        IDs = data[colnames[3]].astype(str)
 
         data = data[colnames + opt_colnames]
         
