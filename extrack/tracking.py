@@ -602,7 +602,6 @@ def P_Cs_inter_bound_stats_th(Cs, LocErr, ds, Fs, TrMat, pBL=0.1, isBL = 1, cell
         LP = cp.repeat(LP, nb_states**nb_substeps, axis = 1)
         
         end_p_stay = p_stay[cur_states[:,None:,:-1]][:,:,0]
-        end_p_stay.shape
         LL = cp.log(pBL + (1-end_p_stay) - pBL * (1-end_p_stay)) + LT
     
     new_s2_arr = cp.array((s2_arr + LocErr2[:,:, min(LocErr_index, nb_locs-current_step)]))
