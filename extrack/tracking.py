@@ -751,14 +751,16 @@ def Proba_Cs(Cs, LocErr, ds, Fs, TrMat, pBL, isBL, cell_dims, nb_substeps, frame
     return LP_C
 
 def Pool_star_P_inter(args):
-    return P_Cs_inter_bound_stats(*args)[2] # returns the 3rd output which is the predictions
+    return P_Cs_inter_bound_stats_th(*args)[2] # returns the 3rd output which is the predictions
 
 def predict_Bs(all_tracks,
                dt,
                params,
                cell_dims=[1],
-               nb_states=2,
-               frame_len=8,
+               nb_states=4,
+               frame_len=5,
+               max_nb_states = 200,
+               threshold = 0.1,
                workers = 1,
                input_LocErr = None):
     '''
@@ -803,7 +805,7 @@ def predict_Bs(all_tracks,
     else:
         raise TypeError("params must be either of the class 'lmfit.parameter.Parameters' or a dictionary of the relevant parameters")
     all_pred_Bs = []
-
+    
     min_len = int(l_list[0])
     max_len = int(l_list[-1])
     
@@ -818,7 +820,7 @@ def predict_Bs(all_tracks,
         Css = all_tracks[k]
         if input_LocErr != None:
             sigs = LocErr[k]
-        nb_max = 500
+        nb_max = 1
         for n in range(int(np.ceil(len(Css)/nb_max))):
             Csss.append(Css[n*nb_max:(n+1)*nb_max])
             if input_LocErr != None:
@@ -828,7 +830,9 @@ def predict_Bs(all_tracks,
             else:
                 isBLs.append(1)
     do_preds = 1
-    args_prod = np.array(list(product(Csss, [0], [ds], [Fs], [TrMat],[pBL], [0],[cell_dims], [nb_substeps], [frame_len], [do_preds], [min_len])), dtype=object)
+    #Cs, LocErr, ds, Fs, TrMat,pBL,isBL, cell_dims, nb_substeps, frame_len, min_len, threshold, max_nb_states = args_prod[0]
+    #Cs, LocErr, ds, Fs, TrMat, pBL, isBL, cell_dims, nb_substeps, frame_len, do_preds, min_len, threshold, max_nb_states = args_prod[0]
+    args_prod = np.array(list(product(Csss, [0], [ds], [Fs], [TrMat],[pBL], [0],[cell_dims], [nb_substeps], [frame_len], [do_preds], [min_len], [threshold], [max_nb_states])), dtype=object)
     args_prod[:, 6] = isBLs
     if input_LocErr != None:
         args_prod[:,1] = sigss
@@ -846,7 +850,7 @@ def predict_Bs(all_tracks,
     all_pred_Bs_dict = {}
     for l in l_list:
         all_pred_Bs_dict[l] = np.empty((0,int(l),nb_states))
-    for pred_Bs in all_pred_Bs:
+    for i, pred_Bs in enumerate(all_pred_Bs):
         all_pred_Bs_dict[str(pred_Bs.shape[1])] = np.concatenate((all_pred_Bs_dict[str(pred_Bs.shape[1])],pred_Bs))
 
     return all_pred_Bs_dict
