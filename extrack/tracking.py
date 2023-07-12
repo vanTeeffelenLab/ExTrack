@@ -643,12 +643,19 @@ def fuse_tracks_th(m_arr, s2_arr, LP, cur_Bs, cur_Bs_cat, nb_Tracks, nb_states =
             cur_s_arr = s_arr[:,Bs_ID]
             
             cur_cur_Bs_cat = cur_Bs_cat[:,Bs_ID]
+            current_state = np.argmax(cur_cur_Bs_cat[0,0])
+            cur_state_mask = np.argmax(cur_Bs_cat[0, :,0],1) == current_state
             
             test_chunks = np.min([np.max([10, int(nb_Tracks**0.4)]), 50])
             test_chunks = 30
             
             if cur_cur_Bs_cat.shape[1] > frame_len:
-                state_mask = np.mean(np.all((cur_cur_Bs_cat[:test_chunks,None,:frame_len] == cur_Bs_cat[:test_chunks,:,:frame_len]), (2, 3)), 0) > 0.999
+                #state_mask = np.mean(np.all((cur_cur_Bs_cat[:test_chunks,None,:frame_len] == cur_Bs_cat[:test_chunks,:,:frame_len]), (2, 3)), 0) > 0.999
+                state_mask = np.mean(np.all(np.argmax(cur_cur_Bs_cat[:test_chunks,None,:frame_len], -1) == np.argmax(cur_Bs_cat[:test_chunks,:,:frame_len], -1), (2)), 0) > 0.999
+            #cur_Bs_cat[:,np.where(state_mask)[0]]
+            
+            #(np.argmax(cur_cur_Bs_cat[:test_chunks,None,:frame_len], -1) == np.argmax(cur_Bs_cat[:test_chunks,:,:frame_len], -1)).shape
+            
             else:
                 state_mask = False
             
@@ -656,24 +663,25 @@ def fuse_tracks_th(m_arr, s2_arr, LP, cur_Bs, cur_Bs_cat, nb_Tracks, nb_states =
             #s_mask_relative = ((cur_s_arr[:,None] > (1 - threshold) * s_arr)*(cur_s_arr[:,None] < (1 + threshold) * s_arr))[0,:,0]
             s_mask_relative = np.mean((np.mean(np.abs(s_arr[:test_chunks] - cur_s_arr[:test_chunks,None]), 2, keepdims = True)/s_arr[:test_chunks]) < threshold, (0, 2)) > 0.8
             
-            args = np.where(m_mask_relative * s_mask_relative + state_mask)[0]
+            args = np.where(m_mask_relative * s_mask_relative * cur_state_mask + state_mask)[0]
 
             args = args[np.isin(args, grouped_IDs) == False] # remove elements that already belongs to a group
             
             groups.append(args)
             grouped_IDs = grouped_IDs + list(args)
-            
+    
     if len(grouped_IDs) != m_arr.shape[1]:
         raise ValueError('problem with grouping: len(grouped_IDs)=' + str(len(grouped_IDs)) + ' and m_arr.shape[1]=' + str( m_arr.shape[1]))
 
-    subgroups = []
-    for group in groups:
-        for state in range(nb_states):
-            subgroup = group[cur_Bs[:, group][0,:,0] == state]
-            if len(subgroup)>0:
-                subgroups.append(subgroup)
+    #subgroups = []
+    #for group in groups:
+    #    for state in range(nb_states):
+    #        subgroup = group[cur_Bs[:, group][0,:,0] == state]
+    #        if len(subgroup)>0:
+    #            subgroups.append(subgroup)
     
     # part that is too time consuming, find a way to make it faster
+    subgroups = groups
     nb_subgroups = len(subgroups)
     new_cur_Bs = np.empty((1, nb_subgroups, 1), dtype=(int))
     if not do_preds:
@@ -706,6 +714,7 @@ def fuse_tracks_th(m_arr, s2_arr, LP, cur_Bs, cur_Bs_cat, nb_Tracks, nb_states =
         new_LP[:, Bs_ID] = np.log(np.sum(np.exp(LP[:, subgroup]-max_LP), axis = 1)) + np.squeeze(max_LP, axis = 1)
         
     return new_m_arr, new_s2_arr, new_LP, new_cur_Bs, new_cur_Bs_cat
+
 
 def get_all_Bs(nb_Cs, nb_states):
     '''
