@@ -771,7 +771,8 @@ def predict_Bs(all_tracks,
                max_nb_states = 200,
                threshold = 0.1,
                workers = 1,
-               input_LocErr = None):
+               input_LocErr = None,
+               verbose = 0):
     '''
     inputs the observed localizations and parameters and determines the proba
     of each localization to be in a given state.
@@ -822,10 +823,6 @@ def predict_Bs(all_tracks,
     sigss = []
     isBLs = []
     for k in range(len(all_tracks)):
-        if k == len(all_tracks)-1:
-            isBL = 0 # last position correspond to tracks which didn't disapear within maximum track length
-        else:
-            isBL = 1
         Css = all_tracks[k]
         if input_LocErr != None:
             sigs = LocErr[k]
@@ -855,6 +852,8 @@ def predict_Bs(all_tracks,
         all_pred_Bs = []
         for args in args_prod:
             all_pred_Bs.append(Pool_star_P_inter(args))
+            if verbose:
+                print('.', end = '')
     
     all_pred_Bs_dict = {}
     for l in l_list:
