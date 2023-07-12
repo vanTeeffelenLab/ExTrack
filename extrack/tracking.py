@@ -603,7 +603,8 @@ def P_Cs_inter_bound_stats_th(Cs, LocErr, ds, Fs, TrMat, pBL=0.1, isBL = 1, cell
         
         end_p_stay = p_stay[cur_states[:,None:,:-1]][:,:,0]
         LL = cp.log(pBL + (1-end_p_stay) - pBL * (1-end_p_stay)) + LT
-    
+        cur_Bs_cat = cur_Bs_cat[:,:,1:]
+
     new_s2_arr = cp.array((s2_arr + LocErr2[:,:, min(LocErr_index, nb_locs-current_step)]))
     log_integrated_term = cp.sum(-0.5*cp.log(2*np.pi*new_s2_arr) - (Cs[:,:,0] - m_arr)**2/(2*new_s2_arr),axis=2)
     #LF = cp.log(Fs[cur_Bs[:,:,0].astype(int)]) # Log proba of starting in a given state (fractions)
