@@ -151,20 +151,13 @@ def read_table(paths, # path of the file to read or list of paths to read multip
             None_ID = (data[colnames[3]] == 'None' ) + pd.isna(data[colnames[3]])
             data = data.drop(data[None_ID].index)
         
-        IDs = data[colnames[3]].astype(str)
-
         data = data[colnames + opt_colnames]
-        
-        track_list = []
-        for ID in np.unique(IDs):
-            track_list.append(data[IDs == ID])
         
         zero_disp_tracks = 0
             
         try:
-            for ID in np.unique(IDs):
+            for ID, track in data.groupby(colnames[3]):
                 
-                track = data[IDs == ID]
                 track = track.sort_values(colnames[2], axis = 0)
                 track_mat = track.values[:,:3].astype('float64')
                 dists = np.sum((track_mat[1:, :2] - track_mat[:-1, :2])**2, axis = 1)**0.5
