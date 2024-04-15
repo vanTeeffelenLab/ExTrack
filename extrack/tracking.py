@@ -1354,3 +1354,50 @@ def param_fitting(all_tracks,
         corr_params['p' + i + j][3] = val
     '''
     return fit
+
+
+def get_likelihood(all_tracks,
+                  dt,
+                  params = None,
+                  nb_states = 2,
+                  nb_substeps = 1,
+                  frame_len = 8,
+                  verbose = 1,
+                  workers = 1,
+                  Matrix_type = 1,
+                  cell_dims = [1], # list of dimensions limit for the field of view (FOV) of the cell in um, a membrane protein in a typical e-coli cell in tirf would have a cell_dims = [0.5,3], in case of cytosolic protein one should imput the depth of the FOV e.g. [0.3] for tirf or [0.8] for hilo
+                  input_LocErr = None, 
+                  threshold = 0.2, 
+                  max_nb_states = 120):
+    
+    if params == None:
+        params = generate_params(nb_states = nb_states,
+                               LocErr_type = 1,
+                               LocErr_bounds = [0.005, 0.1], # the initial guess on LocErr will be the geometric mean of the boundaries
+                               D_max = 3, # maximal diffusion length allowed
+                               Fractions_bounds = [0.001, 0.99],
+                               estimated_transition_rates = 0.1 # transition rate per step.
+                               )
+
+    l_list = np.sort(np.array(list(all_tracks.keys())).astype(int)).astype(str)
+    sorted_tracks = []
+    sorted_LocErrs = []
+    for l in l_list:
+        if len(all_tracks[l]) > 0 :
+            sorted_tracks.append((all_tracks[l]))
+            if input_LocErr != None:
+                sorted_LocErrs.append(input_LocErr[l])
+    all_tracks = sorted_tracks
+    if len(all_tracks) < 1:
+        raise ValueError('No track could be detected. The loaded tracks seem empty. Errors often come from wrong input paths.')
+
+    if input_LocErr != None:
+        input_LocErr = sorted_LocErrs
+    
+    likelihood = - cum_Proba_Cs(params, all_tracks, dt, cell_dims, input_LocErr, nb_states, nb_substeps, frame_len, verbose, workers, Matrix_type, threshold, max_nb_states)
+    
+    return likelihood
+    
+    
+
+
