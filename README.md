@@ -86,6 +86,9 @@ These contain the most important modules in a comprehensive framework. We recomm
 **Document here how to open a Jupyter notebook**
 
 # Usage
+## Units
+The distance units of the parameters (input and output) are the same unit as the units of the tracks. Our initial parameters are chosen to work for micron units but initial parameters can be changed to match other units. The rate parameters are rates per frame. Rates per second can be inferred from the rates per frame by dividing them by the time in between frames.
+
 ## Main functions
 
 extrack.tracking.param_fitting : performs the fit to infer the parameters of a given data set.
