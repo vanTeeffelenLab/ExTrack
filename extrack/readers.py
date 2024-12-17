@@ -63,6 +63,10 @@ def read_trackmate_xml(paths, # path (string specifying the path of the file or 
                     no_zero_disp = True
 
                 dists = np.sum((track[1:, :2] - track[:-1, :2])**2, axis = 1)**0.5
+                if remove_no_disp: # if remove_no_disp = 1, we ignore the tracks that contain displacements of 0 (usually spurious tracks).
+                    if np.any(dists)==0: 
+                        continue
+                
                 if no_zero_disp and track[0, 3] >= frames_boundaries[0] and track[0, 3] <= frames_boundaries[1] and np.all(dists<dist_th):
                     l = len(track)
                     if np.any([l]*len(lengths) == np.array(lengths)) :
