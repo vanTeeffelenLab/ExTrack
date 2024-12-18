@@ -187,6 +187,8 @@ def read_table(paths, # path of the file to read or list of paths to read multip
                             l = lengths[l_idx]
                             tracks[str(l)].append(track_mat[:l, 0:2])
                             frames[str(l)].append(track_mat[:l, 2])
+                            for m in opt_colnames:
+                                opt_metrics[m].append(track[m].values[:l]) 
         except :
             print('problem with file :', path)
         
