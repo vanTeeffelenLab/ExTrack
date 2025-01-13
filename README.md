@@ -5,7 +5,7 @@ This repository contains the necessary scripts to run the method ExTrack. ExTrac
 
 More details on the methods are available on BioarXiv https://www.biorxiv.org/content/10.1101/2022.07.13.499913v1.
 
-ExTrack has been designed and implemented by François Simon in the laboratory of Sven van Teeffelen at University of Montreal. ExTrack is primarerly implemented as a python package. An additional version of ExTrack is available on Fiji via Trackmate thanks to Jean-Yves Tinevez with reduced functionality https://sites.imagej.net/TrackMate-ExTrack/. 
+ExTrack has been designed and implemented by François Simon in the laboratory of Sven van Teeffelen at University of Montreal. ExTrack is primarely implemented as a python package but we are also planning to release a stand alone version of the algorithm soon.
 
 See the Wiki section for more information on how to install and use ExTrack.
 
