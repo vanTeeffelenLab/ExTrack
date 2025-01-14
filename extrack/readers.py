@@ -8,7 +8,8 @@ def read_trackmate_xml(paths, # path (string specifying the path of the file or 
                        frames_boundaries = [-np.inf, np.inf], # min and max frame values allowed for peak detection
                        remove_no_disp = True, # removes tracks showing no motion if True.
                        opt_metrics_names = ['t', 'x'], # e.g. ['pred_0', 'pred_1'],
-                       opt_metrics_types = [int, 'float64'] # will assume 'float64' type if none, otherwise specify a list of same length as opt_metrics_names: e.g. ['float64','float64']
+                       opt_metrics_types = [int, 'float64'] # will assume 'float64' type if none, otherwise specify a list of same length as opt_metrics_names: e.g. ['float64','float64'],
+                       only_start = True # if True, the reader will only select the first positions of the tracks if the track length is superior to the maximum length of `lengths`. If False, the long tracks will be cut in multiple tracks of the maximum length.
                        ):
     """
     Converts xml output from trackmate to a list of arrays of tracks
@@ -76,10 +77,17 @@ def read_trackmate_xml(paths, # path (string specifying the path of the file or 
                             opt_metrics[m][str(l)].append(opt_met[:, k])
                     elif l > np.max(lengths):
                         l = np.max(lengths)
-                        traces[str(l)].append(track[:l, 0:2])
-                        frames[str(l)].append(track[:l, 3])
-                        for k, m in enumerate(opt_metrics_names):
-                            opt_metrics[m][str(l)].append(opt_met[:l, k])
+                        if not only_start:
+                            for kk in range(len(track_mat)//l):
+                                tracks[str(l)].append(track_mat[l*kk:l*(kk+1), 0:2])
+                                frames[str(l)].append(track_mat[l*kk:l*(kk+1), 2])
+                                for m in opt_colnames:
+                                    opt_metrics[m][str(l)].append(track[m].values[:l]) 
+                        else:
+                            traces[str(l)].append(track[:l, 0:2])
+                            frames[str(l)].append(track[:l, 3])
+                            for k, m in enumerate(opt_metrics_names):
+                                opt_metrics[m][str(l)].append(opt_met[:l, k])
             except :
                 print('problem with data on path :', path)
                 raise e
