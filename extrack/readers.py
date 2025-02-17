@@ -169,12 +169,15 @@ def read_table(paths, # path of the file to read or list of paths to read multip
             
         try:
             for ID, track in data.groupby(colnames[3]):
-                
                 track = track.sort_values(colnames[2], axis = 0)
                 track_mat = track.values[:,:3].astype('float64')
-                dists = np.sum((track_mat[1:, :2] - track_mat[:-1, :2])**2, axis = 1)**0.5
+                dists2 = (track_mat[1:, :2] - track_mat[:-1, :2])**2
+                if remove_no_disp:
+                    if np.mean(dists2==0)>0.05: #remove tracks with more than 5% of immobility
+                        continue
+                dists = np.sum(dists2, axis = 1)**0.5
                 if track_mat[0, 2] >= frames_boundaries[0] and track_mat[0, 2] <= frames_boundaries[1] : #and np.all(dists<dist_th):
-                    if not np.any(dists>dist_th):
+                  if not np.any(dists>dist_th):
                         
                         if np.any([len(track_mat)]*len(lengths) == np.array(lengths)):
                             l = len(track)
