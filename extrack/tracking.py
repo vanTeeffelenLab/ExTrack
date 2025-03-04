@@ -767,13 +767,14 @@ def predict_Bs(all_tracks,
                dt,
                params,
                cell_dims=[1],
-               nb_states=4,
+               nb_states=3,
                frame_len=5,
                max_nb_states = 200,
                threshold = 0.1,
                workers = 1,
                input_LocErr = None,
-               verbose = 0):
+               verbose = 0,
+               nb_max = 1):
     '''
     inputs the observed localizations and parameters and determines the proba
     of each localization to be in a given state.
@@ -785,7 +786,8 @@ def predict_Bs(all_tracks,
     cell_dims: dimension limits (um). estimated_vals, min_values, max_values should be changed accordingly to describe all states and transitions.
     nb_states: number of states. estimated_vals, min_values, max_values should be changed accordingly to describe all states and transitions.
     frame_len: number of frames for which the probability is perfectly computed. See method of the paper for more details.
-    
+    nb_max: integer, number of simultanous predictions. Higher numbers strongly increase the speed but might affect the predictions quality.
+
     outputs:
     pred_Bs: dict describing the state probability of each track for each time position with track length as keys (number of time positions, e.g. '23') of 3D arrays: dim 0 = track, dim 1 = time position, dim 2 = state.
     extrack.visualization.visualize_states_durations
@@ -827,7 +829,6 @@ def predict_Bs(all_tracks,
         Css = all_tracks[k]
         if input_LocErr != None:
             sigs = LocErr[k]
-        nb_max = 1000
         for n in range(int(np.ceil(len(Css)/nb_max))):
             Csss.append(Css[n*nb_max:(n+1)*nb_max])
             if input_LocErr != None:
