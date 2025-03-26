@@ -85,8 +85,9 @@ def extrack_2_pandas(all_tracks, pred_Bs, frames = None, opt_metrics = {}):
     all_data = np.concatenate((np.array(track_list), np.array(frames_list), np.array(track_ID_list)[:,None], np.array(pred_Bs_list)), axis = 1)    
     for opt_metric in opt_metrics_list:
         all_data = np.concatenate((all_data, opt_metric), axis = 1)
-
-    colnames = ['X', 'Y', 'frame', 'track_ID']
+    
+    nb_dims = track_list[0].shape[2]
+    colnames = ['POSITION_X', 'POSITION_Y', 'POSITION_Z'][:nb_dims] + ['FRAME', 'TRACK_ID']
     for i in range(np.array(pred_Bs_list).shape[1]):
         colnames = colnames + ['pred_' + str(i)]
     for metric in opt_metrics:
