@@ -288,6 +288,9 @@ def P_segment_len(Cs, LocErr, ds, Fs, TrMat, min_l = 3, pBL=0.1, isBL = 1, cell_
 def pool_star_P_seg(args):
     return P_segment_len(*args)[-1]
 
+# all_tracks = tracks
+# params = lmfit_params
+
 def len_hist(all_tracks,
              params, 
              dt, 
@@ -305,15 +308,22 @@ def len_hist(all_tracks,
     state 0 to 1 and p10 the proba of transition from state 1 to 0.
     here sum the logs(likelihood) to avoid too big numbers
     '''
-    LocErr, ds, Fs, TrMat, pBL = extract_params(params, dt, nb_states, nb_substeps, input_LocErr)
     min_l = np.min((np.array(list(all_tracks.keys()))).astype(int))
-
+    
+    if type(input_LocErr) == dict:
+        new_input_LocErr = []
+        for l in input_LocErr:
+            new_input_LocErr.append(input_LocErr[l])
+        input_LocErr = new_input_LocErr
+    
     if type(all_tracks) == dict:
         new_all_tracks = []
         for l in all_tracks:
             new_all_tracks.append(all_tracks[l])
         all_tracks = new_all_tracks
        
+    LocErr, ds, Fs, TrMat, pBL = extract_params(params, dt, nb_states, nb_substeps, input_LocErr)
+    
     Csss = []
     sigss = []
     isBLs = []
@@ -361,9 +371,7 @@ def len_hist(all_tracks,
         seg_len_hists[:seg_len_hist.shape[0]] = seg_len_hists[:seg_len_hist.shape[0]] + seg_len_hist
     print('')
     return seg_len_hists
-    
-    
-    
+
 '''
     if type(all_tracks) == dict:
         new_all_tracks = []
@@ -407,7 +415,10 @@ def ground_truth_hist(all_Bs,
         cur_Bs = all_Bs[l][:,None]
         if len(cur_Bs)>0:
             if cur_Bs.shape[-1] == 1 :
-                1#seg_len_hists[0] =  seg_len_hists[0] + np.sum(cur_Bs[:,0] == np.arange(nb_states)[None],0)
+                nb_Tracks = cur_Bs.shape[0]
+                nb_locs = cur_Bs.shape[2]
+                cur_nb_Bs = len(cur_Bs[0])
+                #seg_len_hists[0] =  seg_len_hists[0] + np.sum(cur_Bs[:,0] == np.arange(nb_states)[None],0)
                 seg_lens = np.zeros((nb_Tracks, cur_nb_Bs, nb_locs+1, nb_states)) # dims : track ID, sequence of states ID, position in the sequence, state of the sequence
                 seg_lens[:,:,1,:] = (cur_Bs[:,:,0,None] == np.arange(nb_states)[None,None]).astype(float)
             if 1:
