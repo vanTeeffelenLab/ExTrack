@@ -136,15 +136,23 @@ Warning: Do not work on windows.
 
 GPU parallelization used to be available but may not be compatible with the current CPU parallelization, GPU parallelization uses the package cupy which can be installed as described here : https://github.com/cupy/cupy. The cupy version will depend on your cuda version which itself must be compatible with your GPU driver and GPU. Usage of cupy requires a change in the module extrack/tracking (line 4) : GPU_computing = True
 
-# Deploying (developer only)
+# Graphical User interface of ExTrack
+
+The Graphical User interface of ExTrack can be used with the script ExTrack_GUI.py.
+
+# Stand-alone Version
+
+The stand alone version of ExTrack can be download at https://zenodo.org/records/15133436. See the pdf ExTrack_GUI_manual.pdf in this repository for detailed informations on how to use the software (on going).
+Currently supported OS: Windows
+
+To create a stand-alone version of ExTrack for your own OS, you can follow the following steps:
+1) pip install pyinstaller
+2) pyinstaller --onedir path\ExTrack_GUI.py
+3) Copy the .ddl files starting with mkl into the dist\ExTrack_GUI\_internal (the mkl files can be found in C:\Users\Franc\anaconda3\Library\bin in my case)
+4) execute dist\ExTrack_GUI.exe to run the stand alone software
 
 # Authors
-Francois Simon
+François Simon
 
 # Bugs/suggestions
-Send to bugtracker or to email.
-
-# to do
-
-- Redo the script for Refined positions to match the current version.
-- Try approximations based on 'm' and 's' values instead of fixed window length.
+Sent an email at simon.francois \at protonmail.com
