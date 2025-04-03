@@ -30,7 +30,6 @@ from extrack.tracking_0 import P_Cs_inter_bound_stats
 from extrack.exporters import extrack_2_matrix
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
-
 def prod_2GaussPDF(sigma1,sigma2, mu1, mu2):
     sigma = ((sigma1**2*sigma2**2)/(sigma1**2+sigma2**2))**0.5
     mu = (mu1*sigma2**2 + mu2*sigma1**2)/(sigma1**2 + sigma2**2)
@@ -107,8 +106,9 @@ def get_LC_Km_Ks(Cs, LocErr, ds, Fs, TrMat, nb_substeps=1, frame_len = 4, thresh
    
     # inject the first position to get the associated Km and Ks :
     Km, Ks = first_log_integrale_dif(Cs[:,:, nb_locs - current_step], LocErr2[:,:,min(LocErr_index,nb_locs-current_step)], cur_d2s)
-   
-    Ks = cp.repeat(Ks, nb_Tracks, axis = 0)
+    
+    if len(Ks)==1:
+        Ks = cp.repeat(Ks, nb_Tracks, axis = 0)
    
     current_step += 1
     Km = cp.repeat(Km, cur_nb_Bs, axis = 1)
@@ -144,7 +144,7 @@ def get_LC_Km_Ks(Cs, LocErr, ds, Fs, TrMat, nb_substeps=1, frame_len = 4, thresh
         LP = cp.repeat(LP, nb_states**nb_substeps, axis = 1)
         # inject the next position to get the associated Km, Ks and Constant describing the integral of 3 normal laws :
         Km, Ks, LC = log_integrale_dif(Cs[:,:,nb_locs-current_step], LocErr2[:,:,min(LocErr_index,nb_locs-current_step)], cur_d2s, Km, Ks)
-       
+        
         #print('integral',time.time() - t0); t0 = time.time()
         LP += LT + LC # current (log) constants associated with each track and sequences of states
         del LT, LC
@@ -203,10 +203,13 @@ def get_LC_Km_Ks(Cs, LocErr, ds, Fs, TrMat, nb_substeps=1, frame_len = 4, thresh
    
     return LP, cur_Bs, all_cur_Bs, preds, all_Km, all_Ks, all_LP
 
+# LocErr = cur_LocErr
 def get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len = 7, threshold = 0.2, max_nb_states = 1000):
     nb_substeps = 1 
     ds = cp.array(ds)
     Cs = cp.array(Cs)
+    
+    LocErr.shape
     # get Km, Ks and LC forward
     LP1, final_Bs1, all_cur_Bs1, preds1, all_Km1, all_Ks1, all_LP1 = get_LC_Km_Ks(Cs, LocErr, ds, Fs, TrMat, nb_substeps, frame_len, threshold, max_nb_states)
     #get Km, Ks and LC backward
@@ -215,8 +218,8 @@ def get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len = 7, threshold = 0.2, max_n
     LP2, final_Bs2, all_cur_Bs2, preds2, all_Km2, all_Ks2, all_LP2 = get_LC_Km_Ks(Cs2, LocErr, ds, cp.ones(TrMat2.shape[0],)/TrMat2.shape[0], TrMat2, nb_substeps, frame_len, threshold, max_nb_states) # we set a neutral Fs so it doesn't get counted twice
     
     # do the approximation for the first position, product of 2 gaussian PDF, (integrated term and localization error)    
-    sig, mu, LC = prod_2GaussPDF(LocErr, all_Ks1[-1], Cs[:,None,0], all_Km1[-1])
-   
+    sig, mu, LC = prod_2GaussPDF(LocErr[:,None,0], all_Ks1[-1], Cs[:,None,0], all_Km1[-1])
+    
     LP = all_LP1[-1] + LC
     all_pos_means = [mu]
     all_pos_stds = [sig]
@@ -237,7 +240,7 @@ def get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len = 7, threshold = 0.2, max_n
         Km1 = all_Km1[-1-k][:,:,None]
         Ks1 = all_Ks1[-1-k][:,:,None]
         cur_Bs1 = all_cur_Bs1[-1-k][0,:,0]
-               
+        
         LP2 = all_LP2[k-1][:,None]
         Km2 = all_Km2[k-1][:,None]
         Ks2 = all_Ks2[k-1][:,None]
@@ -256,6 +259,7 @@ def get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len = 7, threshold = 0.2, max_n
         Bs2_len = np.min([k+1, frame_len-1])
         # we must reorder the metrics so the Bs from the backward terms correspond to the forward terms
         for state in range(nb_states):
+            
             sub_Ks1 = Ks1[:,np.where(cur_Bs1==state)[0]]
             sub_Ks2 = Ks2[:,:,np.where(cur_Bs2==state)[0]]
             sub_Km1 = Km1[:,np.where(cur_Bs1==state)[0]]
@@ -263,8 +267,13 @@ def get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len = 7, threshold = 0.2, max_n
             sub_LP1 = LP1[:,np.where(cur_Bs1==state)[0]]
             sub_LP2 = LP2[:,:,np.where(cur_Bs2==state)[0]]
            
-            sub_sig, sub_mu, sub_LC = prod_3GaussPDF(sub_Ks1, LocErr, sub_Ks2, sub_Km1, Cs[:,None,None,k], sub_Km2)
+            if LocErr.shape[1]>1:
+                cur_LocErr = LocErr[:,None,None,k]
+            else:
+                cur_LocErr = LocErr[:,None]
            
+            sub_sig, sub_mu, sub_LC = prod_3GaussPDF(sub_Ks1, cur_LocErr, sub_Ks2, sub_Km1, Cs[:,None,None,k], sub_Km2)
+            
             sub_LP = sub_LP1 + sub_LP2 + sub_LC
            
             sub_sig = sub_sig.reshape((nb_tracks,sub_sig.shape[1]*sub_sig.shape[2],1))
@@ -279,7 +288,7 @@ def get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len = 7, threshold = 0.2, max_n
         all_pos_stds.append(sig)
         all_pos_weights.append(LP)
     
-    sig, mu, LC = prod_2GaussPDF(LocErr, all_Ks2[-1], Cs[:,None,-1], all_Km2[-1])
+    sig, mu, LC = prod_2GaussPDF(LocErr[:,None,-1], all_Ks2[-1], Cs[:,None,-1], all_Km2[-1])
     LP = all_LP2[-1] + LC
     
     all_pos_means.append(mu)
@@ -288,20 +297,39 @@ def get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len = 7, threshold = 0.2, max_n
 
     return all_pos_means, all_pos_stds, all_pos_weights
 
+# all_tracks = tracks
+# LocErr = input_LocErr
+# LocErr = LocErr[0]
+
 def position_refinement(all_tracks, LocErr, ds, Fs, TrMat, frame_len = 7, threshold = 0.1, max_nb_states = 1000):
-    if type(LocErr) == float:
+    if type(LocErr) == float or type(LocErr) == np.float64 or type(LocErr) == np.float32:
         LocErr = np.array([[[LocErr]]])
-    elif len(LocErr.shape) == 1:
-        LocErr = LocErr[None, None]
-    if type(LocErr) == np.float64 or type(LocErr) == np.float32:
-        LocErr = np.array([[[LocErr]]])
+        LocErr_type = 'array'
+        cur_LocErr = LocErr
+
+    elif type(LocErr) == np.ndarray:
+        LocErr_type = 'array'
+        if len(LocErr.shape) == 1:
+            LocErr = LocErr[None, None]
+        if len(LocErr.shape) == 2:
+            LocErr = LocErr[None]
+        cur_LocErr = LocErr
+
+    elif type(LocErr) == dict:
+        LocErr_type = 'dict'
+    else:
+        LocErr_type = 'other'
+    print('LocErr_type', LocErr_type)
+    
     all_mus = {}
     all_sigmas = {}
     for l in all_tracks.keys():
         Cs = all_tracks[l]
+        if LocErr_type == 'dict':
+            cur_LocErr = LocErr[l]
         all_mus[l] = np.zeros((Cs.shape[0], int(l), Cs.shape[2]))
         all_sigmas[l] = np.zeros((Cs.shape[0], int(l)))
-        all_pos_means, all_pos_stds, all_pos_weights = get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len, threshold, max_nb_states)
+        all_pos_means, all_pos_stds, all_pos_weights = get_pos_PDF(Cs, cur_LocErr, ds, Fs, TrMat, frame_len, threshold, max_nb_states)
         #best_mus, best_sigs, best_Bs = get_all_estimates(all_pos_weights, all_pos_Bs, all_pos_means, all_pos_stds)
         for k, (pos_means, pos_stds, pos_weights) in enumerate(zip(all_pos_means, all_pos_stds, all_pos_weights)):
             P = np.exp(pos_weights - np.max(pos_weights, 1, keepdims = True))
@@ -358,11 +386,10 @@ def save_gifs(Cs, all_pos_means, all_pos_stds, all_pos_weights, all_pos_Bs, gif_
             sig = asnumpy(all_pos_stds[k])
             mu =  asnumpy(all_pos_means[k])
             LP =  asnumpy(all_pos_weights[k])
-            mu.shape
+            
             fig = plt.figure()            
             plt.plot((Cs[ID, :,1] - Cs_offset[1] + cur_lim)*pix_size-0.5, (Cs[ID, :,0]- Cs_offset[0]+cur_lim)*pix_size-0.5)
             plt.scatter((best_mus[ID, :,1] - Cs_offset[1] + cur_lim)*pix_size-0.5, (best_mus[ID, :,0] - Cs_offset[0]+cur_lim)*pix_size-0.5, c='r', s=3)
-            best_mus.shape
 
             P_xs = gaussian(np.linspace(-cur_lim,cur_lim,nb_pix)[None,:,None], sig[ID][:,:,None], mu[ID][:,:1,None] - Cs_offset[0]) * np.exp(LP[ID]-np.max(LP[ID]))[:,None]
             P_ys = gaussian(np.linspace(-cur_lim,cur_lim,nb_pix)[None,:,None], sig[ID][:,:,None], mu[ID][:,1:,None] - Cs_offset[1]) * np.exp(LP[ID]-np.max(LP[ID]))[:,None]
@@ -472,7 +499,7 @@ def get_pos_PDF_fixedBs(Cs, LocErr, ds, Fs, TrMat, Bs):
     np
     all_pos_means = [mu]
     all_pos_stds = [sig[None]]
-    Cs.shape
+    
     for k in range(1,Cs.shape[1]-1):
 
         Km1 = all_Km1[-k][None]
