@@ -3,6 +3,13 @@
 Created on Fri Feb 14 19:15:37 2025
 
 @author: Franc
+
+This code enables to use the Graphical User interface of ExTrack. 
+To create a stand alone version of ExTrack:
+1) pip install pyinstaller
+2) pyinstaller --onedir path\ExTrack_GUI.py
+3) Copy the .ddl files starting with mkl into the dist\ExTrack_GUI\_internal (the mkl files can be found in C:\Users\Franc\anaconda3\Library\bin in my case)
+4) execute dist\ExTrack_GUI.exe to run the stand alone software
 """
 
 import os
