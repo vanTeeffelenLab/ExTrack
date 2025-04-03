@@ -52,6 +52,9 @@ def extrack_2_matrix(all_Css, pred_Bss, dt, all_frames = None):
             track_ID+=1
     return matrix
 
+# all_tracks = tracks
+# pred_Bs = preds
+
 def extrack_2_pandas(all_tracks, pred_Bs, frames = None, opt_metrics = {}):
     '''
     turn outputs form ExTrack to a unique pandas DataFrame
@@ -86,7 +89,7 @@ def extrack_2_pandas(all_tracks, pred_Bs, frames = None, opt_metrics = {}):
     for opt_metric in opt_metrics_list:
         all_data = np.concatenate((all_data, opt_metric), axis = 1)
     
-    nb_dims = track_list[0].shape[2]
+    nb_dims = len(track_list[0])
     colnames = ['POSITION_X', 'POSITION_Y', 'POSITION_Z'][:nb_dims] + ['FRAME', 'TRACK_ID']
     for i in range(np.array(pred_Bs_list).shape[1]):
         colnames = colnames + ['pred_' + str(i)]
@@ -94,9 +97,56 @@ def extrack_2_pandas(all_tracks, pred_Bs, frames = None, opt_metrics = {}):
         colnames = colnames + [metric]
     
     df = pd.DataFrame(data = all_data, index = np.arange(len(all_data)), columns = colnames)
-    df['frame'] = df['frame'].astype(int)
-    df['track_ID'] = df['track_ID'].astype(int)
+    df['FRAME'] = df['FRAME'].astype(int)
+    df['TRACK_ID'] = df['TRACK_ID'].astype(int)
+    return df
 
+
+def extrack_2_pandas2(tracks, pred_Bs, frames = None, opt_metrics = {}):
+    '''
+    turn outputs form ExTrack to a unique pandas DataFrame
+    '''
+    if frames is None:
+        frames = {}
+        for l in tracks:
+            frames[l] = np.repeat(np.array([np.arange(int(l))]), len(tracks[l]), axis = 0)
+    
+    n = 0
+    for l in tracks:
+        n+= tracks[l].shape[0]*tracks[l].shape[1]
+    
+    nb_dims = tracks[l].shape[2]
+    
+    nb_states = pred_Bs[list(pred_Bs.keys())[0]].shape[-1]
+    
+    flat_tracks = np.zeros((n, tracks[l].shape[2]))
+    flat_frames = np.zeros((n, 1))
+    flat_Track_IDs = np.zeros((n, 1))
+    flat_opt_metrics = np.zeros((n, len(opt_metrics.keys())))
+    flat_preds = np.zeros((n, nb_states))
+    
+    track_ID = 0
+    k = 0
+    for l in tracks:
+        for i, (track, f, p) in enumerate(zip(tracks[l], frames[l], pred_Bs[l])):
+            track_length = track.shape[0]
+            flat_tracks[k:k+track_length] = track
+            flat_frames[k:k+track_length] = f[:, None]
+            flat_Track_IDs[k:k+track_length] = track_ID
+            flat_preds[k:k+track_length] = p
+            for j, metric in enumerate(opt_metrics):
+                flat_opt_metrics[k:k+track_length, j] = opt_metrics[metric][l][i]
+            k+=track_length
+            track_ID+=1
+    
+    arr = np.concatenate((flat_tracks, flat_frames, flat_Track_IDs, flat_opt_metrics, flat_preds), axis = 1)
+    columns = ['POSITION_X', 'POSITION_Y', 'POSITION_Z'][:nb_dims] + ['FRAME', 'TRACK_ID'] + list(opt_metrics.keys())
+    for i in range(nb_states):
+        columns = columns + ['pred_' + str(i)]
+    
+    df = pd.DataFrame(data = arr, columns = columns)
+    df['FRAME'] = df['FRAME'].astype(int)
+    df['TRACK_ID'] = df['TRACK_ID'].astype(int)
     return df
 
 def save_extrack_2_CSV(path, all_tracks, pred_Bss, dt, all_frames = None):
