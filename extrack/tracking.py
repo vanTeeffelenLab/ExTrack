@@ -6,12 +6,6 @@ Created on Mon Apr  4 13:23:30 2022
 @author: francois
 """
 
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Apr  1 11:28:38 2022
-@author: Franc
-"""
-
 import numpy as np
 
 GPU_computing = False
@@ -30,6 +24,13 @@ import scipy
 from lmfit import minimize, Parameters
 
 import multiprocessing
+try:
+    multiprocessing.set_start_method('fork')
+    start_method = 'fork'
+except:
+    print('multiprocessing is only supported on Linux and MacOS')
+    start_method = 'notfork'
+
 try:
     multiprocessing.set_start_method('fork')
     start_method = 'fork'
@@ -62,6 +63,7 @@ def ds_froms_states(ds, cur_states):
     cur_d2s = cur_d2s[:,:,None]
     cur_d2s = cp.array(cur_d2s)
     return cur_d2s
+
 '''
 l2 = LocErr2[:,:,min(LocErr_index,nb_locs-current_step)]
 Ci = Cs[:,:,nb_locs-current_step]
@@ -70,6 +72,7 @@ Ci.shape
 m_arr.shape
 s2_arr.shape
 '''
+
 def log_integrale_dif(Ci, l2, cur_d2s, m_arr, s2_arr):
     '''
     integral of the 3 exponetional terms (localization error, diffusion, previous term)
@@ -767,7 +770,7 @@ def predict_Bs(all_tracks,
                dt,
                params,
                cell_dims=[1],
-               nb_states=3,
+               nb_states=4,
                frame_len=5,
                max_nb_states = 200,
                threshold = 0.1,
@@ -787,7 +790,7 @@ def predict_Bs(all_tracks,
     nb_states: number of states. estimated_vals, min_values, max_values should be changed accordingly to describe all states and transitions.
     frame_len: number of frames for which the probability is perfectly computed. See method of the paper for more details.
     nb_max: integer, number of simultanous predictions. Higher numbers strongly increase the speed but might affect the predictions quality.
-
+    
     outputs:
     pred_Bs: dict describing the state probability of each track for each time position with track length as keys (number of time positions, e.g. '23') of 3D arrays: dim 0 = track, dim 1 = time position, dim 2 = state.
     extrack.visualization.visualize_states_durations
@@ -865,6 +868,11 @@ def predict_Bs(all_tracks,
 
     return all_pred_Bs_dict
 
+'''
+20/input_LocErr[l]
+Fs = np.array([0.3, 0.3, 0.3])
+input_LocErr[l]*1e-5
+'''
 def extract_params(params, dt, nb_states, nb_substeps, input_LocErr = None, Matrix_type = 1):
     '''
     turn the parameters which differ deppending on the number of states into lists
@@ -894,6 +902,7 @@ def extract_params(params, dt, nb_states, nb_substeps, input_LocErr = None, Matr
             Fs.append(params[param].value)
     Ds = np.array(Ds)
     Fs = np.array(Fs)
+    #Fs = np.clip(Fs, a_min=1e-10, a_max = np.inf)
     TrMat = np.zeros((len(Ds),len(Ds)))
     for param in params:
         if param == 'pBL':
@@ -990,6 +999,7 @@ def cum_Proba_Cs(params, all_tracks, dt, cell_dims, input_LocErr, nb_states, nb_
 
         #Cs, LocErr, ds, Fs, TrMat,pBL,isBL, cell_dims, nb_substeps, frame_len, min_len, threshold, max_nb_states = args_prod[0]
         
+        #if workers >= 2 and start_method == 'fork':
         if workers >= 2 and start_method == 'fork':
             with multiprocessing.Pool(workers) as pool:
                 LP = pool.map(pool_star_proba, args_prod)
@@ -1002,7 +1012,7 @@ def cum_Proba_Cs(params, all_tracks, dt, cell_dims, input_LocErr, nb_states, nb_
         Cum_P = asnumpy(Cum_P)
         
         if verbose == 1:
-            q = [param + ' = ' + str(np.round(params[param].value, 4)) for param in params]
+            q = [param + ' = ' + str(np.round(params[param].value, 6)) for param in params]
             print(Cum_P, q)
         else:
             print('.', end='')
@@ -1192,8 +1202,8 @@ def generate_params(nb_states = 3,
             param_kwargs.append({'name' : 'LocErr2', 'value' : estimated_LocErr[-1], 'min' : LocErr_bounds[0], 'max' : LocErr_bounds[1], 'vary' : True})
 
     if LocErr_type == 4:
-        param_kwargs.append({'name' : 'slope_LocErr', 'value' : slope_offsets_estimates[0], 'min' : 0, 'max' : 100, 'vary' : True})
-        param_kwargs.append({'name' : 'offset_LocErr', 'value' : slope_offsets_estimates[1], 'min' : -100, 'max' : 100, 'vary' : True})
+        param_kwargs.append({'name' : 'slope_LocErr', 'value' : slope_offsets_estimates[0], 'min' : -1, 'max' : 20, 'vary' : True})
+        param_kwargs.append({'name' : 'offset_LocErr', 'value' : slope_offsets_estimates[1], 'min' : -1, 'max' : 1, 'vary' : True})
     
     F_expr = '1' 
     if estimated_Fs == None:
@@ -1221,192 +1231,65 @@ def generate_params(nb_states = 3,
     
     return params
 
-def update_fractions(param, cur_params, params, nb_states, cur_value):
-    '''
-    Function to update the Fractions and make sure the sum of the fraction stay equal to 1.
-    When varying the fraction of a state, we compensate by varying the fractions of all the 
-    other state proportionally to their occurence.
-    '''
-    cur_state = int(param[1])
-    cur_params[param].value = cur_value
-    Fs = []
-    for state in range(nb_states):
-        Fs.append(params['F'+str(state)].value)
-    Fs = np.array(Fs)
-    Fs[cur_state] = 0
-    Fs = (1 - cur_value) * Fs / np.sum(Fs)
-    Fs[cur_state] = cur_value
-    for state in range(nb_states):
-        cur_params['F'+str(state)].value = Fs[state]
-    return cur_params
+from copy import deepcopy
 
-def compute_uncertainties(all_tracks,
-                          dt,
-                          nb_states,
-                          params,
-                          nb_substeps = 1,
-                          cell_dims = [1],
-                          frame_len = 5,
-                          verbose = 0,
-                          workers = 1,
-                          input_LocErr = None,
-                          threshold = 0.1,
-                          max_nb_states=200,
-                          epsilon=1e-5,
-                          nb_bins = 201):
-    """
-    Compute the uncertainty on each parameter given the most likely values of the other parameters.
-    """
+def Maximize(params, args):
+    var_params = []
+    for param in params:
+        if params[param].vary == True:
+            var_params.append(param)
+
+    L = - cum_Proba_Cs(params, *args)
+
+    best_L = deepcopy(L)
+
+    history = []
+    history.append({'params': params, 'L': best_L})
+    steps = {}
+    momentum = {}
+
+    for param in var_params:
+        steps[param] = 0.2
+        momentum[param] = 1
+
+    while not np.all(np.array(list(steps.values()))<0.01):
+        for param in var_params:
+            if steps[param] > np.mean(list(steps.values()))/5: # condition to avoid some parameters to be tested until obtaining ridiculously small steps. Increase speed and allow those parameters to change if the landscape requires it.
+                cur_steps = [- steps[param] * (params[param].value - params[param].min), steps[param] * (params[param].max - params[param].value)]
+                cur_params = deepcopy(params)
+                cur_params[param].value = params[param].value + cur_steps[momentum[param]]
+                cur_L = - cum_Proba_Cs(cur_params, *args)
+                if cur_L > L:
+                    params[param].value = cur_params[param].value
+                    L = cur_L
+                    history.append({'params': params, 'L': L, 'steps': steps, 'momentum': momentum})
+                    steps[param] = steps[param]*1.2 # if the momentum is good we slightly increase the step size to favor faster convergence
+                else:
+                    cur_params[param].value = params[param].value + cur_steps[np.abs(momentum[param]-1)]
+                    cur_L = -cum_Proba_Cs(cur_params, *args)
+                    if cur_L > L:
+                        params[param].value = cur_params[param].value
+                        L = cur_L
+                        momentum[param] = np.abs(momentum[param]-1)
+                        history.append({'params': params, 'L': L, 'steps': steps, 'momentum': momentum})
+                        steps[param] = steps[param]*0.8
+                    else: # if none of the values tested are better, we reduce the step size and redo an iteration
+                        steps[param] = steps[param]*0.5
+                
+    class Fit(object):
+        pass
+
+    fit = Fit()
+    fit.params = params
+    fit.residual = [L]
+    fit.history = history
     
-    l_list = np.sort(np.array(list(all_tracks.keys())).astype(int)).astype(str)
-    sorted_tracks = []
-    sorted_LocErrs = []
-    for l in l_list:
-        if len(all_tracks[l]) > 0 :
-            sorted_tracks.append((all_tracks[l]))
-            if input_LocErr != None:
-                sorted_LocErrs.append(input_LocErr[l])
-    all_tracks = sorted_tracks
-    if input_LocErr != None:
-        input_LocErr = sorted_LocErrs
-        
-    all_expected_values = []
-    all_stds = []
-    all_params = []
+    return fit
     
-    param = 'D0'
-    
-    for i, param in enumerate(params):
-        
-        print(param)
-        
-        max_likelihood = - extrack.tracking.cum_Proba_Cs(all_tracks = all_tracks,
-                                                         dt = dt,
-                                                         nb_states = nb_states,
-                                                         params = params,
-                                                         nb_substeps = nb_substeps,
-                                                         cell_dims = cell_dims,
-                                                         frame_len = frame_len,
-                                                         verbose = verbose,
-                                                         workers = workers,
-                                                         input_LocErr = input_LocErr,
-                                                         threshold = threshold,
-                                                         max_nb_states = max_nb_states)
-        
-        cur_params = params.copy()
-        
-        cur_likelihood = max_likelihood-1
-        step = epsilon/2
-        
-        while cur_likelihood-max_likelihood > -30 or step < 100*epsilon:
-            step = 2*step
-            min_value = params[param].value - step
-            if min_value<=0:
-                min_value = 0
-                break
-            
-            cur_params = params.copy()
-            if param.startswith('F'):
-                cur_params = update_fractions(param, cur_params, params, nb_states, min_value)
-            else:       
-                cur_params[param].value = min_value
-            
-            cur_likelihood = - extrack.tracking.cum_Proba_Cs(all_tracks = all_tracks,
-                                                dt = dt,
-                                                nb_states = nb_states,
-                                                params = cur_params,
-                                                nb_substeps = nb_substeps,
-                                                cell_dims = cell_dims,
-                                                frame_len = frame_len,
-                                                verbose = verbose,
-                                                workers = workers,
-                                                input_LocErr = input_LocErr,
-                                                threshold = threshold,
-                                                max_nb_states = max_nb_states)
-        
-        cur_likelihood = max_likelihood-1
-        step = epsilon/2
-        
-        while cur_likelihood - max_likelihood > -30:
-
-            step = 2*step
-            max_value = params[param].value + step
-            if param.startswith('F'):
-                cur_params = update_fractions(param, cur_params, params, nb_states, max_value)
-            else:
-                cur_params[param].value = max_value
-            
-            cur_likelihood = - extrack.tracking.cum_Proba_Cs(all_tracks = all_tracks,
-                                                dt = dt,
-                                                nb_states = nb_states,
-                                                params = cur_params,
-                                                nb_substeps = nb_substeps,
-                                                cell_dims = cell_dims,
-                                                frame_len = frame_len,
-                                                verbose = verbose,
-                                                workers = workers,
-                                                input_LocErr = input_LocErr,
-                                                threshold = threshold,
-                                                max_nb_states = max_nb_states)
-
-            if cur_likelihood == max_likelihood and step > 100*epsilon: # Exit the loop if the function is independent on the parameter
-                break
-        
-        if param.startswith('F') or param == 'pBL':
-            max_value = np.min([max_value, 1-1e-10])
-        
-        param_range = np.linspace(min_value, max_value, nb_bins)
-        step = param_range[1] - param_range[0]
-        ls = []
-        
-        for cur_value in param_range:
-            cur_params = params.copy()
-            if param.startswith('F'):
-                cur_params = update_fractions(param, cur_params, params, nb_states, cur_value)
-            else:
-                cur_params[param].value = cur_value
-            
-            cur_likelihood = - extrack.tracking.cum_Proba_Cs(all_tracks = all_tracks,
-                                                dt = dt,
-                                                nb_states = nb_states,
-                                                params = cur_params,
-                                                nb_substeps = nb_substeps,
-                                                cell_dims = cell_dims,
-                                                frame_len = frame_len,
-                                                verbose = verbose,
-                                                workers = workers,
-                                                input_LocErr = input_LocErr,
-                                                threshold = threshold,
-                                                max_nb_states = max_nb_states)
-            
-            ls.append(np.exp(cur_likelihood-max_likelihood))
-        
-        ls = ls / (np.sum(ls)*step)
-        
-        expected_value = np.sum(ls * param_range * step)
-        variance = np.sum(ls * (param_range - expected_value)**2 * step)
-        std = variance**0.5
-        if np.all(ls == ls[0]):
-            expected_value = np.nan
-            std = np.nan
-                    
-        print('\nexpected value:', expected_value, ', standard deviation:', std)
-        
-        all_expected_values.append(expected_value)
-        all_stds.append(std)
-        all_params.append(param)
-        
-        plt.figure()
-        plt.plot(param_range, ls)
-        plt.title('Distribution of ' + param)
-        plt.xlabel(param)
-        plt.ylabel('Density')
-        
-    print('')
-    expected_values = pd.DataFrame([all_expected_values], columns=all_params, index = ['expected values'])
-    standard_deviations = pd.DataFrame([all_stds], columns=all_params, index = ['standard deviations'])
-    return expected_values, standard_deviations
-
+'''
+all_tracks = tracks
+params = lmfit_params
+'''
 #all_tracks = tracks
 def param_fitting(all_tracks,
                   dt,
@@ -1454,7 +1337,7 @@ def param_fitting(all_tracks,
                                Fractions_bounds = [0.001, 0.99],
                                estimated_transition_rates = 0.1 # transition rate per step.
                                )
-
+        
     l_list = np.sort(np.array(list(all_tracks.keys())).astype(int)).astype(str)
     sorted_tracks = []
     sorted_LocErrs = []
@@ -1469,6 +1352,8 @@ def param_fitting(all_tracks,
 
     if input_LocErr != None:
         input_LocErr = sorted_LocErrs
+    
+    print('cell_dims', cell_dims)
     
     fit = minimize(cum_Proba_Cs, params, args=(all_tracks, dt, cell_dims,input_LocErr, nb_states, nb_substeps, frame_len, verbose, workers, Matrix_type, threshold, max_nb_states), method = method, nan_policy = 'propagate')
     if verbose == 0:
@@ -1486,49 +1371,3 @@ def param_fitting(all_tracks,
         corr_params['p' + i + j][3] = val
     '''
     return fit
-
-def get_likelihood(all_tracks,
-                  dt,
-                  params = None,
-                  nb_states = 2,
-                  nb_substeps = 1,
-                  frame_len = 8,
-                  verbose = 1,
-                  workers = 1,
-                  Matrix_type = 1,
-                  cell_dims = [1], # list of dimensions limit for the field of view (FOV) of the cell in um, a membrane protein in a typical e-coli cell in tirf would have a cell_dims = [0.5,3], in case of cytosolic protein one should imput the depth of the FOV e.g. [0.3] for tirf or [0.8] for hilo
-                  input_LocErr = None, 
-                  threshold = 0.2, 
-                  max_nb_states = 120):
-    
-    if params == None:
-        params = generate_params(nb_states = nb_states,
-                               LocErr_type = 1,
-                               LocErr_bounds = [0.005, 0.1], # the initial guess on LocErr will be the geometric mean of the boundaries
-                               D_max = 3, # maximal diffusion length allowed
-                               Fractions_bounds = [0.001, 0.99],
-                               estimated_transition_rates = 0.1 # transition rate per step.
-                               )
-
-    l_list = np.sort(np.array(list(all_tracks.keys())).astype(int)).astype(str)
-    sorted_tracks = []
-    sorted_LocErrs = []
-    for l in l_list:
-        if len(all_tracks[l]) > 0 :
-            sorted_tracks.append((all_tracks[l]))
-            if input_LocErr != None:
-                sorted_LocErrs.append(input_LocErr[l])
-    all_tracks = sorted_tracks
-    if len(all_tracks) < 1:
-        raise ValueError('No track could be detected. The loaded tracks seem empty. Errors often come from wrong input paths.')
-
-    if input_LocErr != None:
-        input_LocErr = sorted_LocErrs
-    
-    likelihood = - cum_Proba_Cs(params, all_tracks, dt, cell_dims, input_LocErr, nb_states, nb_substeps, frame_len, verbose, workers, Matrix_type, threshold, max_nb_states)
-    
-    return likelihood
-    
-    
-
-
