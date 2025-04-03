@@ -8,8 +8,7 @@ def read_trackmate_xml(paths, # path (string specifying the path of the file or 
                        frames_boundaries = [-np.inf, np.inf], # min and max frame values allowed for peak detection
                        remove_no_disp = True, # removes tracks showing no motion if True.
                        opt_metrics_names = ['t', 'x'], # e.g. ['pred_0', 'pred_1'],
-                       opt_metrics_types = [int, 'float64'] # will assume 'float64' type if none, otherwise specify a list of same length as opt_metrics_names: e.g. ['float64','float64'],
-                       only_start = True # if True, the reader will only select the first positions of the tracks if the track length is superior to the maximum length of `lengths`. If False, the long tracks will be cut in multiple tracks of the maximum length.
+                       opt_metrics_types = [int, 'float64'] # will assume 'float64' type if none, otherwise specify a list of same length as opt_metrics_names: e.g. ['float64','float64']
                        ):
     """
     Converts xml output from trackmate to a list of arrays of tracks
@@ -29,7 +28,6 @@ def read_trackmate_xml(paths, # path (string specifying the path of the file or 
     for m in opt_metrics_names:
         opt_metrics[m] = {}
     for l in lengths:
-        traces[str(l)] = []
         frames[str(l)] = []
         for m in opt_metrics_names:
             opt_metrics[m][str(l)] = []
@@ -64,10 +62,6 @@ def read_trackmate_xml(paths, # path (string specifying the path of the file or 
                     no_zero_disp = True
 
                 dists = np.sum((track[1:, :2] - track[:-1, :2])**2, axis = 1)**0.5
-                if remove_no_disp: # if remove_no_disp = 1, we ignore the tracks that contain displacements of 0 (usually spurious tracks).
-                    if np.any(dists)==0: 
-                        continue
-                
                 if no_zero_disp and track[0, 3] >= frames_boundaries[0] and track[0, 3] <= frames_boundaries[1] and np.all(dists<dist_th):
                     l = len(track)
                     if np.any([l]*len(lengths) == np.array(lengths)) :
@@ -77,17 +71,10 @@ def read_trackmate_xml(paths, # path (string specifying the path of the file or 
                             opt_metrics[m][str(l)].append(opt_met[:, k])
                     elif l > np.max(lengths):
                         l = np.max(lengths)
-                        if not only_start:
-                            for kk in range(len(track_mat)//l):
-                                tracks[str(l)].append(track_mat[l*kk:l*(kk+1), 0:2])
-                                frames[str(l)].append(track_mat[l*kk:l*(kk+1), 2])
-                                for m in opt_colnames:
-                                    opt_metrics[m][str(l)].append(track[m].values[:l]) 
-                        else:
-                            traces[str(l)].append(track[:l, 0:2])
-                            frames[str(l)].append(track[:l, 3])
-                            for k, m in enumerate(opt_metrics_names):
-                                opt_metrics[m][str(l)].append(opt_met[:l, k])
+                        traces[str(l)].append(track[:l, 0:2])
+                        frames[str(l)].append(track[:l, 3])
+                        for k, m in enumerate(opt_metrics_names):
+                            opt_metrics[m][str(l)].append(opt_met[:l, k])
             except :
                 print('problem with data on path :', path)
                 raise e
@@ -121,7 +108,7 @@ def read_table(paths, # path of the file to read or list of paths to read multip
     
     if type(paths) == str or type(paths) == np.str_:
         paths = [paths]
-
+        
     tracks = {}
     frames = {}
     opt_metrics = {}
@@ -169,15 +156,16 @@ def read_table(paths, # path of the file to read or list of paths to read multip
             
         try:
             for ID, track in data.groupby(colnames[3]):
+                
                 track = track.sort_values(colnames[2], axis = 0)
                 track_mat = track.values[:,:3].astype('float64')
                 dists2 = (track_mat[1:, :2] - track_mat[:-1, :2])**2
                 if remove_no_disp:
-                    if np.mean(dists2==0)>0.05: #remove tracks with more than 5% of immobility
+                    if np.mean(dists2==0)>0.05:
                         continue
                 dists = np.sum(dists2, axis = 1)**0.5
                 if track_mat[0, 2] >= frames_boundaries[0] and track_mat[0, 2] <= frames_boundaries[1] : #and np.all(dists<dist_th):
-                  if not np.any(dists>dist_th):
+                    if not np.any(dists>dist_th):
                         
                         if np.any([len(track_mat)]*len(lengths) == np.array(lengths)):
                             l = len(track)
@@ -198,8 +186,6 @@ def read_table(paths, # path of the file to read or list of paths to read multip
                             l = lengths[l_idx]
                             tracks[str(l)].append(track_mat[:l, 0:2])
                             frames[str(l)].append(track_mat[:l, 2])
-                            for m in opt_colnames:
-                                opt_metrics[m].append(track[m].values[:l]) 
         except :
             print('problem with file :', path)
         
