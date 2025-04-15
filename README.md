@@ -5,7 +5,7 @@ This repository contains the necessary scripts to run the method ExTrack. ExTrac
 
 More details on the methods are available on BioarXiv https://www.biorxiv.org/content/10.1101/2022.07.13.499913v1.
 
-ExTrack has been designed and implemented by François Simon in the laboratory of Sven van Teeffelen at University of Montreal. ExTrack is primarely implemented as a python package and as a stand-alone software. The stand alone version of ExTrack can be download at https://zenodo.org/records/15133436. See the wiki https://github.com/vanTeeffelenLab/ExTrack/wiki or the pdf ExTrack_GUI_manual.pdf (not implemented yet) in this repository for detailed informations on how to use the software. Currently supported OS: Windows of the algorithm soon.
+ExTrack has been designed and implemented by François Simon in the laboratory of Sven van Teeffelen at University of Montreal. ExTrack is primarely implemented as a python package and as a stand-alone software. The stand alone version of ExTrack can be download at https://zenodo.org/records/15133436. See the wiki https://github.com/vanTeeffelenLab/ExTrack/wiki or the pdf ExTrack_GUI_manual.pdf (not implemented yet) in this repository for detailed informations on how to use the software. Currently supported OS: Windows.
 
 See the Wiki section for more information on how to install and use ExTrack (python package and stand-alone software).
 
