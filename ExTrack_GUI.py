@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Feb 14 19:15:37 2025
-
 @author: Franc
-
 This code enables to use the Graphical User interface of ExTrack. 
 To create a stand alone version of ExTrack:
 1) pip install pyinstaller
