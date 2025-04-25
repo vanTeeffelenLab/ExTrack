@@ -8,7 +8,7 @@ This code enables to use the Graphical User interface of ExTrack.
 To create a stand alone version of ExTrack:
 1) pip install pyinstaller
 2) pyinstaller --onedir path\ExTrack_GUI.py
-3) Copy the .ddl files starting with mkl into the dist\ExTrack_GUI\_internal (the mkl files can be found in C:\Users\Franc\anaconda3\Library\bin in my case)
+3) Copy the .ddl files starting with mkl into the dist\ExTrack_GUI\_internal (the mkl files can be found in C:\ Users\Franc\anaconda3\Library\bin in my case)
 4) execute dist\ExTrack_GUI.exe to run the stand alone software
 """
 
@@ -21,7 +21,7 @@ print('tkinter',tk)
 from tkinter import ttk
 import webbrowser
 import extrack
-print(extrack.__file__)
+
 import pandas as pd
 import matplotlib.pyplot as plt
 from glob import glob
@@ -36,14 +36,21 @@ def open_analysis_window():
     global previous_window
     path = path_entry.get()
     print(os.path.normpath(path))
-    savepath = os.path.normpath(path).rsplit(os.sep, 1)[0]
-    (os.sep, 1)[0]
+    if path.endswith('.csv'):
+        savepath = os.path.normpath(path).rsplit(os.sep, 2)[0]
+    else:
+        savepath = os.path.normpath(path).rsplit(os.sep, 1)[0]
+        
     min_length = int(min_length_entry.get())
     max_length = int(max_length_entry.get())
     analysis_type = analysis_type_var.get()
     LocErr_type = LocErr_type_var.get()
     LocErr_input_name = LocErr_input_entry.get().split(',')
+    if LocErr_input_name == ['']:
+        LocErr_input_name = []
     Optional_input_name = Optional_input_entry.get().split(',')
+    if Optional_input_name == ['']:
+        Optional_input_name = []
     headers = [x_pos_entry.get(), y_pos_entry.get(), frame_entry.get(), ID_entry.get()]
     max_dist = float(max_dist_entry.get())
     remove_no_disps = bool(remove_no_disp_entry.get())
@@ -114,37 +121,45 @@ def create_fitting_window(window, path, savepath, min_length, max_length, LocErr
     elif len(path)==0:
         show_error_url(window, "No csv file detected in the informed directory. Make sure the csv files end with the extention '.csv'.\n", url=None)
         return
-    
-    if LocErr_type == "Fitted parameter":
-        tracks, frames, opt_metrics = extrack.readers.read_table(path,
-                                                         lengths=np.arange(min_length, max_length+1),
-                                                         dist_th=max_dist,
-                                                         frames_boundaries=[-np.inf, np.inf], fmt='csv',
-                                                         colnames = headers,
-                                                         remove_no_disp=remove_no_disps,
-                                                         opt_colnames = Optional_input_name)
-        input_LocErr = None
-      
-    else:
-        
-        tracks, frames, opt_metrics = extrack.readers.read_table(path,
-                                                         lengths=np.arange(min_length, max_length+1),
-                                                         dist_th=max_dist,
-                                                         frames_boundaries=[-np.inf, np.inf], fmt='csv',
-                                                         colnames = headers,
-                                                         remove_no_disp=remove_no_disps,
-                                                         opt_colnames = Optional_input_name + LocErr_input_name)
-        
-        # then, we retreive input_LocErr from the optional metrics 
-        input_LocErr = {}
-        for l in tracks:
-            input_LocErr[l] = np.zeros(tracks[l].shape[:2] + (len(LocErr_input_name),))
-        
-        for i, name in enumerate(LocErr_input_name):
+    try:
+        if LocErr_type == "Fitted parameter":
+            tracks, frames, opt_metrics = extrack.readers.read_table(path,
+                                                             lengths=np.arange(min_length, max_length+1),
+                                                             dist_th=max_dist,
+                                                             frames_boundaries=[-np.inf, np.inf], fmt='csv',
+                                                             colnames = headers,
+                                                             remove_no_disp=remove_no_disps,
+                                                             opt_colnames = Optional_input_name)
+            input_LocErr = None
+          
+        else:
+            
+            if LocErr_input_name == []:
+                raise ValueError('If selecting localization errors "Inputing the Localization error" or "Inputing a quality metric for each peak", you must provide the name of the column that informs on the localization error of each peaks')
+                #print('If selecting localization errors "Inputing the Localization error" or "Inputing a quality metric for each peak", you must provide the name of the column that informs on the localization error of each peaks')
+                #go_to_previous_window(window)
+                
+            tracks, frames, opt_metrics = extrack.readers.read_table(path,
+                                                             lengths=np.arange(min_length, max_length+1),
+                                                             dist_th=max_dist,
+                                                             frames_boundaries=[-np.inf, np.inf], fmt='csv',
+                                                             colnames = headers,
+                                                             remove_no_disp=remove_no_disps,
+                                                             opt_colnames = Optional_input_name + LocErr_input_name)
+            
+            # then, we retreive input_LocErr from the optional metrics 
+            input_LocErr = {}
             for l in tracks:
-                input_LocErr[l][:,:,i] = opt_metrics[name][l]
-            del opt_metrics[name]
-        
+                input_LocErr[l] = np.zeros(tracks[l].shape[:2] + (len(LocErr_input_name),))
+            
+            for i, name in enumerate(LocErr_input_name):
+                for l in tracks:
+                    input_LocErr[l][:,:,i] = opt_metrics[name][l]
+                del opt_metrics[name]
+    except:
+        print('ERROR: The data did not load correctly. Verify that the headers for the x positions, y positions, frame number and track ID are correctly informed. If selecting localization errors "Inputing the Localization error" or "Inputing a quality metric for each peak", you must provide the name of the column that informs on the localization error of each peaks')
+        go_to_previous_window(window)
+    
     #except Exception as e:
         #show_error_url(window, "The csv file could not be read correctly.\nVerify that your file has columns named: 'POSITION_X', 'POSITION_Y', 'FRAME', 'TRACK_ID'\nFor more details, click here:", "https://github.com/FrancoisSimon/aTrack")
         #return 
@@ -278,7 +293,7 @@ def run_fitting(window, tracks, dt, nb_states, nb_iterations, nb_substeps, frame
                                       nb_states = nb_states,
                                       nb_substeps = nb_substeps,
                                       frame_len = frame_len,
-                                      verbose = 1,
+                                      verbose = 0,
                                       workers = 1,
                                       Matrix_type = 1,
                                       method = 'powell',
@@ -287,7 +302,7 @@ def run_fitting(window, tracks, dt, nb_states, nb_iterations, nb_substeps, frame
                                       input_LocErr = input_LocErr, 
                                       threshold = threshold, 
                                       max_nb_states = max_nb_states)
-    
+    print('likelihood iteration 0:', - model_fit.residual[0])
     for k in range(nb_iterations-1):
         model_fit = extrack.tracking.param_fitting(tracks,
                                           dt,
@@ -295,7 +310,7 @@ def run_fitting(window, tracks, dt, nb_states, nb_iterations, nb_substeps, frame
                                           nb_states = nb_states,
                                           nb_substeps = nb_substeps,
                                           frame_len = frame_len,
-                                          verbose = 1,
+                                          verbose = 0,
                                           workers = 1,
                                           Matrix_type = 1,
                                           method = 'bfgs',
@@ -304,14 +319,32 @@ def run_fitting(window, tracks, dt, nb_states, nb_iterations, nb_substeps, frame
                                           input_LocErr = input_LocErr, 
                                           threshold = threshold,
                                           max_nb_states = max_nb_states)
-    
+        print('likelihood iteration %s:'%(k+1), - model_fit.residual[0])
     lmfit_params = model_fit.params
     
-    data = pd.DataFrame([], columns = ['exp', 'likelihood'] + list(lmfit_params.keys()))
+    TrMat = np.zeros((nb_states, nb_states))
+    for i in range(nb_states):
+        for j in range(nb_states):
+            if i!=j:
+                TrMat[i,j] = model_fit.params['p%s%s'%(i,j)].value/100
+        TrMat[i,i] = 1-np.sum(TrMat[i])
+    
+    A0 = np.ones((1,nb_states))/nb_states
+    for k in range(200000):
+        A0 = A0 @ TrMat
+    
+    equilibrium_Fraction_names = []
+    for s in range(nb_states):
+        equilibrium_Fraction_names.append('equilibrium_F%s'%s)
+    
+    data = pd.DataFrame([], columns = ['exp', 'likelihood'] + list(lmfit_params.keys()) + equilibrium_Fraction_names)
 
     vals = [savepath, - model_fit.residual[0]]
     for param in lmfit_params:
         vals.append(lmfit_params[param].value)
+    
+    for Fi in A0[0]:
+        vals.append(Fi)    
     
     data.loc[len(data.index)] = vals
     data.to_csv(savepath)
@@ -323,18 +356,18 @@ def run_fitting(window, tracks, dt, nb_states, nb_iterations, nb_substeps, frame
 
 
 def create_prediction_window(window, path, savepath, min_length, max_length, LocErr_type, LocErr_input_name, Optional_input_name, headers, max_dist, remove_no_disps):
-    if not path.endswith('.csv'):
-        show_error_url(window, "Please select a csv file with an extention .csv\n", url=None)
-        return
-    #try:
-    print('path', path, type(path))
-    print('headers', headers, type(headers), type(headers[0])) 
-    print('remove_no_disp', remove_no_disps, type(remove_no_disps))
-    print('Optional_input_name', Optional_input_name, type(Optional_input_name))
-    print('max_dist', max_dist, type(max_dist))
     
     if os.path.isdir(path):
         path = glob(path + '/*.csv')
+        
+    if type(path) == str:
+        if not path.endswith('.csv') :
+            show_error_url(window, "Please select a csv file with an extention '.csv'.\n", url=None)
+            return
+    
+    elif len(path)==0:
+        show_error_url(window, "No csv file detected in the informed directory. Make sure the csv files end with the extention '.csv'.\n", url=None)
+        return
     
     if LocErr_type == "Fitted parameter":
         tracks, frames, opt_metrics = extrack.readers.read_table(path,
@@ -347,6 +380,9 @@ def create_prediction_window(window, path, savepath, min_length, max_length, Loc
         input_LocErr = None
       
     else:
+        
+        if LocErr_input_name == []:
+            raise ValueError('If selecting localization errors "Inputing the Localization error" or "Inputing a quality metric for each peak", you must provide the name of the column that informs on the localization error of each peaks')
         
         tracks, frames, opt_metrics = extrack.readers.read_table(path,
                                                          lengths=np.arange(min_length, max_length+1),
@@ -414,6 +450,17 @@ def create_prediction_window(window, path, savepath, min_length, max_length, Loc
     Depth_of_field_entry.grid(row=7, column=1)
     Depth_of_field_entry.insert(tk.END, str(params['cell_dims']))
     
+    Draw_plot_label = ttk.Label(window, text="Plot labeled tracks")
+    Draw_plot_label.grid(row=8, column=0, padx = padx, pady = pady, sticky = 'e')
+    Draw_plot_var = tk.StringVar(window)
+    Draw_plot_var.set(params['draw_plot'])
+    Draw_plot_dropdown = ttk.OptionMenu(window, Draw_plot_var, Draw_plot_var.get(),
+                                             "Yes",
+                                             "No",
+                                             style='My.TMenubutton')
+    #Draw_plot_dropdown.config(width=15)
+    Draw_plot_dropdown.grid(row=8, column=1, padx = padx, pady = pady, sticky="e")
+    
     # Savepath Input
     savepath_label = ttk.Label(window, text="Save Path:")
     savepath_label.grid(row=9, column=0, sticky = 'e', padx = padx, pady = pady)
@@ -438,14 +485,15 @@ def create_prediction_window(window, path, savepath, min_length, max_length, Loc
                                                             input_LocErr = input_LocErr, 
                                                             threshold = float(Threshold_entry.get()), 
                                                             max_nb_states = int(Max_nb_sequences_entry.get()),
-                                                            savepath = savepath_entry.get()))
+                                                            savepath = savepath_entry.get(),
+                                                            Draw_plot = Draw_plot_var.get()))
     run_button.grid(row=10, column=1, columnspan=1)
     
     # Previous Button
     previous_button = ttk.Button(window, text="Previous", command=lambda: go_to_previous_window(window))
     previous_button.grid(row=10, column=0, columnspan=1)
 
-def run_predictions(window, tracks, frames, opt_metrics, dt, nb_states, frame_len, cell_dims, LocErr_type, input_LocErr, threshold, max_nb_states, savepath):
+def run_predictions(window, tracks, frames, opt_metrics, dt, nb_states, frame_len, cell_dims, LocErr_type, input_LocErr, threshold, max_nb_states, savepath, Draw_plot):
     # Run the Brownian motion analysis
     #tracks = tracks[str(length)]
     global params
@@ -455,9 +503,6 @@ def run_predictions(window, tracks, frames, opt_metrics, dt, nb_states, frame_le
     params['cell_dims'] = cell_dims
     params['max_nb_sequ_labeling'] = max_nb_states
     params['threshold'] = threshold
-    
-    print("params['num_states']", params['num_states'])
-    print('nb_states', nb_states)
     
     if params['num_states'] != nb_states:
         get_new_params(nb_states)
@@ -473,13 +518,8 @@ def run_predictions(window, tracks, frames, opt_metrics, dt, nb_states, frame_le
     
     lmfit_params = params_to_lmfit_params(params, LocErr_type)
     
-    print('lmfit_params', lmfit_params)
     #print('tracks', tracks)
     #print('input_LocErr', input_LocErr)
-    print('nb_states', nb_states, type(nb_states))
-    
-    for l in tracks:
-        print(tracks[l].shape)
     
     preds = extrack.tracking.predict_Bs(tracks,
                            dt,
@@ -493,6 +533,53 @@ def run_predictions(window, tracks, frames, opt_metrics, dt, nb_states, frame_le
                            input_LocErr = input_LocErr,
                            verbose = 0,
                            nb_max = 1)
+        
+    if Draw_plot == 'Yes':
+        track_list = []
+        pred_list = []
+        for l in tracks:
+            track_list = track_list + list(tracks[l])
+            pred_list = pred_list + list(preds[l])
+            
+        stds = np.zeros(100)
+
+        for k in range(100):
+            ID = np.random.randint(len(track_list))
+            stds[k] = np.mean(np.std(track_list[ID], 0))
+        
+        lim = 10*np.mean(stds)
+        nb_rows = 8
+        
+        def rgb_cm(pred, nb_states):
+            pred2color = np.zeros((1, nb_states, 3))
+            for state in range(nb_states):
+                x = state/(nb_states-1)
+                r = np.clip(1-2*x, 0, 1)
+                if x <0.5:
+                    g = 2*x
+                else:
+                    g = 1 - 2*(x-0.5)
+                b = np.clip(2*x - 1, 0, 1)
+                pred2color[0, state] = [r, g, b]
+            return np.sum(pred[:,:,None]*pred2color, 1)
+        
+        plt.figure(figsize = (10,10))
+        for i in range(nb_rows):
+            for j in range(nb_rows):
+                ID = np.random.randint(len(track_list)) 
+                track = track_list[ID]
+                track = track - np.mean(track, 0, keepdims = True) + [[lim*i, lim*j]]
+                pred = pred_list[ID]
+                plt.plot(track[:, 0], track[:, 1], ':k')
+                if nb_states == 2:
+                    current_colors = plt.cm.brg(pred[:,0]/2)
+                if nb_states == 3:
+                    current_colors = rgb_cm(pred, nb_states)
+                if nb_states > 3:
+                    current_colors = rgb_cm(pred, nb_states)
+                plt.scatter(track[:, 0], track[:, 1], c = current_colors, s = 8)
+        plt.gca().set_aspect('equal', adjustable='box')
+        plt.show()
     
     DATA = extrack.exporters.extrack_2_pandas(tracks, preds, frames = frames, opt_metrics = opt_metrics)    
     DATA.to_csv(savepath)
@@ -500,18 +587,18 @@ def run_predictions(window, tracks, frames, opt_metrics, dt, nb_states, frame_le
     print("State labeling completed and results saved to %s."%savepath)
 
 def create_lifetime_window(window, path, savepath, min_length, max_length, LocErr_type, LocErr_input_name, Optional_input_name, headers, max_dist, remove_no_disps):
-    if not path.endswith('.csv'):
-        show_error_url(window, "Please select a csv file with an extention .csv\n", url=None)
-        return
-    #try:
-    print('path', path, type(path))
-    print('headers', headers, type(headers), type(headers[0])) 
-    print('remove_no_disp', remove_no_disps, type(remove_no_disps))
-    print('Optional_input_name', Optional_input_name, type(Optional_input_name))
-    print('max_dist', max_dist, type(max_dist))
     
     if os.path.isdir(path):
         path = glob(path + '/*.csv')
+        
+    if type(path) == str:
+        if not path.endswith('.csv') :
+            show_error_url(window, "Please select a csv file with an extention '.csv'.\n", url=None)
+            return
+    
+    elif len(path)==0:
+        show_error_url(window, "No csv file detected in the informed directory. Make sure the csv files end with the extention '.csv'.\n", url=None)
+        return
     
     if LocErr_type == "Fitted parameter":
         tracks, frames, opt_metrics = extrack.readers.read_table(path,
@@ -524,6 +611,9 @@ def create_lifetime_window(window, path, savepath, min_length, max_length, LocEr
         input_LocErr = None
     
     else:
+        
+        if LocErr_input_name == []:
+            raise ValueError('If selecting localization errors "Inputing the Localization error" or "Inputing a quality metric for each peak", you must provide the name of the column that informs on the localization error of each peaks')
         
         tracks, frames, opt_metrics = extrack.readers.read_table(path,
                                                          lengths=np.arange(min_length, max_length+1),
@@ -621,9 +711,6 @@ def run_lifetime(window, tracks, dt, nb_states, cell_dims, LocErr_type, input_Lo
     #tracks = tracks[str(length)]
     global params
     
-    print("params['num_states']", params['num_states'])
-    print('nb_states', nb_states)
-    
     params['dt'] = dt
     params['cell_dims'] = cell_dims
     params['max_nb_sequ_histograms'] = max_nb_states
@@ -641,14 +728,6 @@ def run_lifetime(window, tracks, dt, nb_states, cell_dims, LocErr_type, input_Lo
             raise ValueError("If you chose to estimate the localization error from a quality metric, the quality metrics must all be numerical and strictly positive")
     
     lmfit_params = params_to_lmfit_params(params, LocErr_type)
-    
-    print('lmfit_params', lmfit_params)
-    #print('tracks', tracks)
-    #print('input_LocErr', input_LocErr)
-    print('nb_states', nb_states, type(nb_states))
-    
-    for l in tracks:
-        print(tracks[l].shape)
     
     hists = extrack.histograms.len_hist(tracks,
                                         lmfit_params, 
@@ -689,18 +768,18 @@ def run_lifetime(window, tracks, dt, nb_states, cell_dims, LocErr_type, input_Lo
         plt.show()
 
 def create_refinement_window(window, path, savepath, min_length, max_length, LocErr_type, LocErr_input_name, Optional_input_name, headers, max_dist, remove_no_disps):
-    if not path.endswith('.csv'):
-        show_error_url(window, "Please select a csv file with an extention .csv\n", url=None)
-        return
-    #try:
-    print('path', path, type(path))
-    print('headers', headers, type(headers), type(headers[0])) 
-    print('remove_no_disp', remove_no_disps, type(remove_no_disps))
-    print('Optional_input_name', Optional_input_name, type(Optional_input_name))
-    print('max_dist', max_dist, type(max_dist))
     
     if os.path.isdir(path):
         path = glob(path + '/*.csv')
+        
+    if type(path) == str:
+        if not path.endswith('.csv') :
+            show_error_url(window, "Please select a csv file with an extention '.csv'.\n", url=None)
+            return
+    
+    elif len(path)==0:
+        show_error_url(window, "No csv file detected in the informed directory. Make sure the csv files end with the extention '.csv'.\n", url=None)
+        return
     
     if LocErr_type == "Fitted parameter":
         tracks, frames, opt_metrics = extrack.readers.read_table(path,
@@ -713,6 +792,9 @@ def create_refinement_window(window, path, savepath, min_length, max_length, Loc
         input_LocErr = None
       
     else:
+        
+        if LocErr_input_name == []:
+            raise ValueError('If selecting localization errors "Inputing the Localization error" or "Inputing a quality metric for each peak", you must provide the name of the column that informs on the localization error of each peaks')
         
         tracks, frames, opt_metrics = extrack.readers.read_table(path,
                                                          lengths=np.arange(min_length, max_length+1),
@@ -822,9 +904,6 @@ def run_refinement(window, tracks, frames, opt_metrics, dt, nb_states, frame_len
     params['max_nb_sequ_histograms'] = max_nb_states
     params['threshold'] = threshold
     
-    print("params['num_states']", params['num_states'])
-    print('nb_states', nb_states)
-    
     if params['num_states'] != nb_states:
         get_new_params(nb_states)
     
@@ -837,14 +916,6 @@ def run_refinement(window, tracks, frames, opt_metrics, dt, nb_states, frame_len
             raise ValueError("If you chose to estimate the localization error from a quality metric, the quality metrics must all be numerical and strictly positive")
     
     lmfit_params = params_to_lmfit_params(params, LocErr_type)
-    
-    print('lmfit_params', lmfit_params)
-    #print('tracks', tracks)
-    #print('input_LocErr', input_LocErr)
-    print('nb_states', nb_states, type(nb_states))
-    
-    for l in tracks:
-        print(tracks[l].shape)
 
     if LocErr_type == "Inputing a quality metric for each peak" or LocErr_type == "Inputing the Localization error":
         new_input_LocErr = []
@@ -942,7 +1013,7 @@ def params_to_lmfit_params(params, LocErr_type):
                                    LocErr_type = LocErr_type,
                                    nb_dims = 2, # only matters if LocErr_type == 2,
                                    LocErr_bounds = [params['loc_error'][0]/10, params['loc_error'][0]*10], # the initial guess on LocErr will be the geometric mean of the boundaries
-                                   D_max = 10, # maximal diffusion coefficient allowed
+                                   D_max = 10*params['diff_coeffs'][-1], # maximal diffusion coefficient allowed
                                    Fractions_bounds = [0.001, 0.99],
                                    estimated_LocErr = params['loc_error'],
                                    estimated_Ds = params['diff_coeffs'], # D will be arbitrary spaced from 0 to D_max if None, otherwise input 1D array/list of Ds for each state from state 0 to nb_states - 1.
@@ -1139,7 +1210,7 @@ params = {'num_states': 2,
  'transition_probs': np.array([[0.9, 0.1],
                                [0.1, 0.9]]),
  'bleaching_rate': 0.02,
- 'dt': 0.1, "fitting_window_length": 6, "labeling_window_length": 10, 'nb_iters': 3, 'max_nb_sequ': 200, 'threshold': 0.1, 'nb_substeps':  1, 'max_nb_sequ_labeling': 50, 'max_nb_sequ_histograms': 300, 'draw_plot': 'Yes'}
+ 'dt': 0.1, "fitting_window_length": 6, "labeling_window_length": 10, 'nb_iters': 3, 'max_nb_sequ': 200, 'threshold': 0.1, 'nb_substeps':  1, 'max_nb_sequ_labeling': 50, 'max_nb_sequ_histograms': 300, 'draw_plot': 'Yes', 'LocErr_input_name': '', 'Optional_input_names': '', }
 nb_states = 2
 
 def browser():
@@ -1160,10 +1231,10 @@ def browse_savepath(entry_widget):
 # Path Input
 path_label = ttk.Label(root, text="Path:")
 path_label.grid(row=0, column=0, padx = padx, pady = pady, sticky = 'e')
-path_entry = ttk.Entry(root, width=52)
+path_entry = ttk.Entry(root, width=64)
 path_entry.grid(row=0, column=1, columnspan=3, padx = padx, pady = pady, sticky = 'e')
-#path_entry.insert(tk.END, os.getcwd())
-path_entry.insert(tk.END,  r'D:\Maria_DATA\Tracks\4.csv')
+path_entry.insert(tk.END, os.getcwd())
+#path_entry.insert(tk.END,  r'D:\Maria_DATA\Tracks\4.csv')
 #path_button = ttk.Button(root, text="Browse", command=lambda: path_entry.insert(tk.END, filedialog.askopenfilename()))
 #path_button = ttk.Button(root, text="Browse", command=lambda: (path_entry.insert(tk.END, filedialog.askopenfilename(initialdir=os.path.expanduser('~'), title="Select File"))))
 path_button = ttk.Button(root, text="Browse", command=browser)
@@ -1181,7 +1252,7 @@ max_length_label = ttk.Label(root, text="Maximum length:")
 max_length_label.grid(row=1, column=2, padx = padx, pady = pady, sticky = 'e')
 max_length_entry = ttk.Entry(root, width=width)
 max_length_entry.grid(row=1, column=3, padx = padx, pady = pady, sticky = 'e')
-max_length_entry.insert(tk.END, "5")
+max_length_entry.insert(tk.END, "15")
 
 headers_label = ttk.Label(root, text="Headers:")
 headers_label.grid(row=3, column=0, padx = padx, pady = pady, sticky = 'e')
@@ -1238,13 +1309,13 @@ LocErr_type_dropdown.grid(row=5, column=1, columnspan=2, padx = padx, pady = pad
 
 LocErr_input_entry = ttk.Entry(root, width=41)
 LocErr_input_entry.grid(row=5, column=3, columnspan=2, padx = padx, pady = pady, sticky = 'e')
-LocErr_input_entry.insert(tk.END, "QUALITY")
+LocErr_input_entry.insert(tk.END, params['LocErr_input_name'])
 
 LocErr_type_label = ttk.Label(root, text="Additional metrics")
 LocErr_type_label.grid(row=6, column=0, padx = padx, pady = pady, sticky = 'e')
 Optional_input_entry = ttk.Entry(root, width=88)
 Optional_input_entry.grid(row=6, column=1, columnspan=4, padx = padx, pady = pady, sticky = 'e')
-Optional_input_entry.insert(tk.END, "CONTRAST_CH1,SNR_CH1")
+Optional_input_entry.insert(tk.END, params['Optional_input_names'])
 
 max_dist_label = ttk.Label(root, text="Maximum distance")
 max_dist_label.grid(row=7, column=0, padx = padx, pady = pady, sticky = 'e')
@@ -1264,4 +1335,3 @@ next_button.grid(row=8, column=3, columnspan=2, padx = padx, pady = pady, sticky
 
 root.mainloop()
 
-import numpy; print(numpy.__file__)
