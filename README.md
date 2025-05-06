@@ -3,7 +3,7 @@ ExTrack
 
 This repository contains the necessary scripts to run the method ExTrack. ExTrack is a method to detemine kinetics of particles able to transition between different motion states. It can assess diffusion coefficients, transition rates, localization error as well as annotating the probability for any track to be in each state for every time points. It can produce histograms of durations in each state to highlight none-markovian transition kinetics. Eventually it can be used to refine the localization precision of tracks by considering the most likely positions which is especially efficient when the particle do not move.
 
-More details on the methods are available on BioarXiv https://www.biorxiv.org/content/10.1101/2022.07.13.499913v1.
+More details on the methods are available in the Journal of Cell Biology https://rupress.org/jcb/article/222/5/e202208059/213911/ExTrack-characterizes-transition-kinetics-and.
 
 ExTrack has been designed and implemented by François Simon in the laboratory of Sven van Teeffelen at University of Montreal. ExTrack is primarely implemented as a python package and as a stand-alone software. The stand alone version of ExTrack can be download at https://zenodo.org/records/15133436. See the wiki https://github.com/vanTeeffelenLab/ExTrack/wiki or the pdf ExTrack_GUI_manual.pdf (not implemented yet) in this repository for detailed informations on how to use the software. Currently supported OS: Windows.
 
