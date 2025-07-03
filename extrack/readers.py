@@ -97,6 +97,7 @@ def read_trackmate_xml(paths, # path (string specifying the path of the file or 
                 
     return traces, frames, opt_metrics
 
+
 def read_table(paths, # path of the file to read or list of paths to read multiple files.
                lengths = np.arange(5,40), # number of positions per track accepted (take the first position if longer than max
                dist_th = np.inf, # maximum distance allowed for consecutive positions 
@@ -108,7 +109,8 @@ def read_table(paths, # path of the file to read or list of paths to read multip
     
     if type(paths) == str or type(paths) == np.str_:
         paths = [paths]
-        
+    
+    nb_dims = len(colnames)-2
     tracks = {}
     frames = {}
     opt_metrics = {}
@@ -120,9 +122,7 @@ def read_table(paths, # path of the file to read or list of paths to read multip
         frames[str(l)] = []
         for m in opt_colnames:
             opt_metrics[m][str(l)] = []
-    
     for path in paths:
-        
         if fmt == 'csv':
             data = pd.read_csv(path, sep=',')
         elif fmt == 'pkl':
@@ -130,62 +130,77 @@ def read_table(paths, # path of the file to read or list of paths to read multip
         else:
             data = pd.read_csv(path, sep = fmt)
         
-        if not (type(colnames[3]) == str or type(colnames[3]) == np.str_):
+        if not pd.api.types.is_numeric_dtype(data.dtypes[colnames[0]]):
+            raise ValueError('The x values are not numerical. Verify the presence of non numerical values in the file. In particular, verify that the file contains only one row of headers')            
+        
+        if not pd.api.types.is_numeric_dtype(data.dtypes[colnames[1]]):
+            raise ValueError('The y values are not numerical. Verify the presence of non numerical values in the file. In particular, verify that the file contains only one row of headers')            
+        
+        if not pd.api.types.is_numeric_dtype(data.dtypes[colnames[2]]):
+            raise ValueError('The frame values are not numerical. Verify the presence of non numerical values in the file. In particular, verify that the file contains only one row of headers')    
+    
+        if not (type(colnames[-1]) == str or type(colnames[-1]) == np.str_):
             # in this case we remove the NA values for simplicity
-            None_ID = (data[colnames[3]] == 'None') + pd.isna(data[colnames[3]])
+            None_ID = (data[colnames[-1]] == 'None') + pd.isna(data[colnames[-1]])
             data = data.drop(data[np.any(None_ID,1)].index)
-                
-            new_ID = data[colnames[3][0]].astype(str)
             
-            for k in range(1,len(colnames[3])):
-                new_ID = new_ID + '_' + data[colnames[3][k]].astype(str)
+            new_ID = data[colnames[-1][0]].astype(str)
+            
+            for k in range(1,len(colnames[-1])):
+                new_ID = new_ID + '_' + data[colnames[-1][k]].astype(str)
             data['unique_ID'] = new_ID
-            colnames[3] = 'unique_ID'        
+            colnames[-1] = 'unique_ID'        
         try:
             # in this case, peaks without an ID are assumed alone and are added a unique ID, only works if ID are integers
-            None_ID = (data[colnames[3]] == 'None' ) + pd.isna(data[colnames[3]])
-            max_ID = np.max(data[colnames[3]][(data[colnames[3]] != 'None' ) * (pd.isna(data[colnames[3]]) == False)].astype(int))
-            data.loc[None_ID, colnames[3]] = np.arange(max_ID+1, max_ID+1 + np.sum(None_ID))
+            None_ID = (data[colnames[-1]] == 'None') + pd.isna(data[colnames[3]])
+            max_ID = np.max(data[colnames[-1]][(data[colnames[-1]] != 'None' ) * (pd.isna(data[colnames[-1]]) == False)].astype(int))
+            data.loc[None_ID, colnames[-1]] = np.arange(max_ID+1, max_ID+1 + np.sum(None_ID))
         except:
-            None_ID = (data[colnames[3]] == 'None' ) + pd.isna(data[colnames[3]])
+            None_ID = (data[colnames[-1]] == 'None') + pd.isna(data[colnames[-1]])
             data = data.drop(data[None_ID].index)
         
-        data = data[colnames + opt_colnames]
+        # To enable to retrieve the track ID, we modify the track ID name
         
+        if colnames[-1] in opt_colnames:
+            new_col = pd.DataFrame(data[colnames[-1]].values, columns = [colnames[-1] + '_bis'])
+            data = pd.concat((data, new_col), axis = 1)
+            colnames[-1] = colnames[-1] + '_bis'
+        
+        data = data[colnames + opt_colnames]
         zero_disp_tracks = 0
             
         try:
-            for ID, track in data.groupby(colnames[3]):
+            for ID, track in data.groupby(colnames[-1]):
                 
-                track = track.sort_values(colnames[2], axis = 0)
-                track_mat = track.values[:,:3].astype('float64')
-                dists2 = (track_mat[1:, :2] - track_mat[:-1, :2])**2
+                track = track.sort_values(colnames[-2], axis = 0)
+                track_mat = track.values[:,:nb_dims+1].astype('float64')
+                dists2 = (track_mat[1:, :nb_dims] - track_mat[:-1, :nb_dims])**2
                 if remove_no_disp:
                     if np.mean(dists2==0)>0.05:
                         continue
                 dists = np.sum(dists2, axis = 1)**0.5
-                if track_mat[0, 2] >= frames_boundaries[0] and track_mat[0, 2] <= frames_boundaries[1] : #and np.all(dists<dist_th):
+                if track_mat[0, nb_dims] >= frames_boundaries[0] and track_mat[0, nb_dims] <= frames_boundaries[1] : #and np.all(dists<dist_th):
                     if not np.any(dists>dist_th):
                         
                         if np.any([len(track_mat)]*len(lengths) == np.array(lengths)):
                             l = len(track)
-                            tracks[str(l)].append(track_mat[:, 0:2])
-                            frames[str(l)].append(track_mat[:, 2])
+                            tracks[str(l)].append(track_mat[:, :nb_dims])
+                            frames[str(l)].append(track_mat[:, nb_dims])
                             for m in opt_colnames:
                                 opt_metrics[m][str(l)].append(track[m].values)
-        
+                        
                         elif len(track_mat) > np.max(lengths):
                             l = np.max(lengths)
-                            tracks[str(l)].append(track_mat[:l, 0:2])
-                            frames[str(l)].append(track_mat[:l, 2])
+                            tracks[str(l)].append(track_mat[:l, :nb_dims])
+                            frames[str(l)].append(track_mat[:l, nb_dims])
                             for m in opt_colnames:
                                 opt_metrics[m][str(l)].append(track[m].values[:l]) 
                         
                         elif len(track_mat) < np.max(lengths) and len(track_mat) > np.min(lengths) : # in case where lengths between min(lengths) and max(lentghs) are not all present:
                             l_idx =   np.argmin(np.floor(len(track_mat) / lengths))-1
                             l = lengths[l_idx]
-                            tracks[str(l)].append(track_mat[:l, 0:2])
-                            frames[str(l)].append(track_mat[:l, 2])
+                            tracks[str(l)].append(track_mat[:l, :nb_dims])
+                            frames[str(l)].append(track_mat[:l, nb_dims])
         except :
             print('problem with file :', path)
         
@@ -204,3 +219,4 @@ def read_table(paths, # path of the file to read or list of paths to read multip
     if zero_disp_tracks and not remove_no_disp:
         print('Warning: some tracks show no displacements. To be checked if normal or not. These tracks can be removed with remove_no_disp = True')
     return tracks, frames, opt_metrics
+
