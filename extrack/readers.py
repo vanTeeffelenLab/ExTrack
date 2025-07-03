@@ -76,8 +76,7 @@ def read_trackmate_xml(paths, # path (string specifying the path of the file or 
                         for k, m in enumerate(opt_metrics_names):
                             opt_metrics[m][str(l)].append(opt_met[:l, k])
             except :
-                print('problem with data on path :', path)
-                raise e
+                raise ValueError('problem with data on path: ' + path)
 
     for l in list(traces.keys()):
         if len(traces[l])>0:
