@@ -28,6 +28,7 @@ def read_trackmate_xml(paths, # path (string specifying the path of the file or 
     for m in opt_metrics_names:
         opt_metrics[m] = {}
     for l in lengths:
+        traces[str(l)] = []
         frames[str(l)] = []
         for m in opt_metrics_names:
             opt_metrics[m][str(l)] = []
