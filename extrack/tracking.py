@@ -31,13 +31,6 @@ except:
     print('multiprocessing is only supported on Linux and MacOS')
     start_method = 'notfork'
 
-try:
-    multiprocessing.set_start_method('fork')
-    start_method = 'fork'
-except:
-    print('multiprocessing is only supported on Linux and MacOS')
-    start_method = 'notfork'
-
 from itertools import product
 
 from time import time
