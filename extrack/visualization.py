@@ -72,12 +72,12 @@ def visualize_tracks(DATA,
             nb_states += 1
     
     plt.figure(figsize = figsize)
-    DATA['X']
-    for ID in np.unique(DATA['track_ID'])[::-1]:
+    
+    for ID in np.unique(DATA['TRACK_ID'])[::-1]:
         if np.mod(ID, 20)==0:
             print('.', end = '')
         #print(ID)
-        track = DATA[DATA['track_ID'] ==ID ]
+        track = DATA[DATA['TRACK_ID'] ==ID ]
         if track_length_range[0] < len(track) > track_length_range[0]:
             if nb_states == 2 :
                 pred = track['pred_1']
@@ -85,8 +85,8 @@ def visualize_tracks(DATA,
             else:
                 pred = track[['pred_2', 'pred_1', 'pred_0']].values
             
-            plt.plot(track['X'], track['Y'], 'k:', alpha = 0.2)
-            plt.scatter(track['X'], track['Y'], c = pred, s=3)
+            plt.plot(track['POSITION_X'], track['POSITION_Y'], 'k:', alpha = 0.2)
+            plt.scatter(track['POSITION_X'], track['POSITION_Y'], c = pred, s=3)
             plt.gca().set_aspect('equal', adjustable='datalim')
             #plt.scatter(track['X'], track['X'], marker = 'x', c='k', s=5, alpha = 0.5)
 
@@ -108,25 +108,25 @@ def plot_tracks(DATA,
     
     plt.figure(figsize=figsize)
     
-    for ID in np.unique(DATA['track_ID'])[::-1]:
-        track = DATA[DATA['track_ID'] ==ID]
+    for ID in np.unique(DATA['TRACK_ID'])[::-1]:
+        track = DATA[DATA['TRACK_ID'] ==ID]
         if len(track) > max_track_length:
-            DATA.drop((DATA[DATA['track_ID'] == ID]).index, inplace=True)
+            DATA.drop((DATA[DATA['TRACK_ID'] == ID]).index, inplace=True)
     
-    for k, ID in enumerate(np.unique(DATA['track_ID'])[::-1][:np.product(nb_subplots)]):
+    for k, ID in enumerate(np.unique(DATA['TRACK_ID'])[::-1][:np.product(nb_subplots)]):
         plt.subplot(nb_subplots[0], nb_subplots[1], k+1)
 
-        track = DATA[DATA['track_ID'] ==ID ]
+        track = DATA[DATA['TRACK_ID'] ==ID ]
         if nb_states == 2 :
             pred = track['pred_1']
             pred = cm.brg(pred*0.5)
         else:
             pred = track[['pred_2', 'pred_1', 'pred_0']].values
         
-        plt.plot(track['X'], track['Y'], 'k:', alpha = 0.2)
-        plt.scatter(track['X'], track['Y'], c = pred, s=3)
-        plt.xlim([np.mean(track['X']) - lim, np.mean(track['X']) + lim])
-        plt.ylim([np.mean(track['Y']) - lim, np.mean(track['Y']) + lim])
+        plt.plot(track['POSITION_X'], track['POSITION_Y'], 'k:', alpha = 0.2)
+        plt.scatter(track['POSITION_X'], track['POSITION_Y'], c = pred, s=3)
+        plt.xlim([np.mean(track['POSITION_X']) - lim, np.mean(track['POSITION_X']) + lim])
+        plt.ylim([np.mean(track['POSITION_Y']) - lim, np.mean(track['POSITION_Y']) + lim])
         plt.gca().set_aspect('equal', adjustable='box')
         plt.yticks(fontsize = 6)
         plt.xticks(fontsize = 6)
