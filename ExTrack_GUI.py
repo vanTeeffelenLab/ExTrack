@@ -8,6 +8,7 @@ To create a stand alone version of ExTrack:
 2) pyinstaller --onedir path\ExTrack_GUI.py
 3) Copy the .ddl files starting with mkl into the dist\ExTrack_GUI\_internal (the mkl files can be found in C:\ Users\Franc\anaconda3\Library\bin in my case)
 4) execute dist\ExTrack_GUI.exe to run the stand alone software
+test commit
 """
 
 import os
