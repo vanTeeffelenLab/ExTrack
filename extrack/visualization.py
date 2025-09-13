@@ -95,34 +95,82 @@ def plot_tracks(DATA,
                 nb_subplots = [5,5],
                 figsize = (10,10),
                 lim = 0.4 ):
-    ''''
+    '''
     DATA: dataframe outputed by extrack.exporters.extrack_2_pandas.
     max_track_length: maximum track length to be outputed, it will plot the longest tracks respecting this criteria.
     nb_subplots: number of lines and columns of subplots.
     figsize: size of the figure plotted
+    lim: limit for x and y axis around the track center
     '''
+    
+    # Count number of states
     nb_states = 0
+    pred_columns = []
     for param in list(DATA.keys()):
         if param.find('pred')+1:
             nb_states += 1
+            pred_columns.append(param)
+    
+    # Sort prediction columns to ensure consistent ordering
+    pred_columns.sort()
     
     plt.figure(figsize=figsize)
     
+    # Remove tracks longer than max_track_length
     for ID in np.unique(DATA['TRACK_ID'])[::-1]:
-        track = DATA[DATA['TRACK_ID'] ==ID]
+        track = DATA[DATA['TRACK_ID'] == ID]
         if len(track) > max_track_length:
             DATA.drop((DATA[DATA['TRACK_ID'] == ID]).index, inplace=True)
     
-    for k, ID in enumerate(np.unique(DATA['TRACK_ID'])[::-1][:np.product(nb_subplots)]):
-        plt.subplot(nb_subplots[0], nb_subplots[1], k+1)
-
-        track = DATA[DATA['TRACK_ID'] ==ID ]
-        if nb_states == 2 :
-            pred = track['pred_1']
-            pred = cm.brg(pred*0.5)
+    # Generate distinct colors for each state
+    if nb_states > 0:
+        # Use a colormap that provides distinct colors
+        if nb_states <= 10:
+            colormap = cm.tab10
+        elif nb_states <= 20:
+            colormap = cm.tab20
         else:
-            pred = track[['pred_2', 'pred_1', 'pred_0']].values
+            colormap = cm.hsv
         
+        # Generate colors for each state
+        state_colors = [colormap(i) for i in range(nb_states)]
+    
+    # Plot tracks
+    for k, ID in enumerate(np.unique(DATA['TRACK_ID'])[::-1][:min(len(np.unique(DATA['TRACK_ID'])), np.prod(nb_subplots))]):
+        
+        plt.subplot(nb_subplots[0], nb_subplots[1], k+1)
+        track = DATA[DATA['TRACK_ID'] == ID]
+
+        if nb_states == 1:
+            # Single state, use intensity based on prediction
+            pred = track[pred_columns[0]].values
+            pred = cm.viridis(pred)
+        elif nb_states == 2:
+            # Two states, interpolate between two colors
+            pred = track[pred_columns[1]].values  # Usually pred_1 for binary classification
+            pred = cm.brg(pred*0.5)
+        elif nb_states == 3:
+            pred = track[pred_columns].values  # Usually pred_1 for binary classification
+
+        else:
+            # Multiple states, use RGB mixing or dominant state coloring
+            pred_values = track[pred_columns].values
+            
+            # Method 1: Color by dominant state
+            dominant_states = np.argmax(pred_values, axis=1)
+            pred = [state_colors[state] for state in dominant_states]
+            
+            # Alternative Method 2: RGB mixing (uncomment to use instead)
+            # if nb_states == 3:
+            #     pred = pred_values  # Direct RGB for 3 states
+            # else:
+            #     # For more than 3 states, use weighted average of first 3 colors
+            #     weights = pred_values[:, :min(3, nb_states)]
+            #     if nb_states > 3:
+            #         weights = weights / np.sum(weights, axis=1, keepdims=True)
+            #     pred = weights
+        
+        # Plot track
         plt.plot(track['POSITION_X'], track['POSITION_Y'], 'k:', alpha = 0.2)
         plt.scatter(track['POSITION_X'], track['POSITION_Y'], c = pred, s=3)
         plt.xlim([np.mean(track['POSITION_X']) - lim, np.mean(track['POSITION_X']) + lim])
@@ -130,6 +178,37 @@ def plot_tracks(DATA,
         plt.gca().set_aspect('equal', adjustable='box')
         plt.yticks(fontsize = 6)
         plt.xticks(fontsize = 6)
+    
+    # Add legend for states
+    legend_elements = []
+    for i in range(nb_states):
+        label = f'State {i}'
+        if nb_states == 1:
+            color = cm.viridis(1)  # Middle color for representation
+        elif nb_states == 2:
+            if i == 0:
+                color = cm.brg(0.0)
+            else:
+                color = cm.brg(0.5)
+        elif nb_states == 3:
+            color = [0,0,0]
+            color[i] = 1
+        else:
+            label = f'State {i}'
+            color = state_colors[i]
+        
+        legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
+                                            markerfacecolor=color, markersize=5, 
+                                            label=label, linestyle='None'))
+    
+    # Place legend outside the plot area
+    plt.figlegend(handles=legend_elements, 
+                 loc='center right', 
+                 bbox_to_anchor=(0.98, 0.5),
+                 fontsize=8)
+    
     print('')
     plt.tight_layout(h_pad = 1, w_pad = 1)
-
+    # Adjust layout to make room for legend
+    if nb_states > 0:
+        plt.subplots_adjust(right=0.85)
