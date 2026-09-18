@@ -19,7 +19,19 @@ https://pypi.org/project/extrack/
 - matplotlib
 - pandas
 
-Optional: jupyter, cupy
+Optional:
+
+- numba: compiles the inner recursion. The kernels are reported at 11 to 26
+  times the numpy path on the recursion itself; end to end a full fit gains
+  less, because the optimizer and the parameter handling do not speed up --
+  measured at 2.9x on the fitting cell of the tutorial (93.3 s against 32.2 s),
+  with the fitted likelihood identical to the last digit. ExTrack runs without
+  it (the numpy code stays the reference); install it and it is picked up
+  automatically.
+  `extrack.tracking.set_numba(mode, threads)` turns it on or off and sets the
+  thread count, `extrack.tracking.numba_status()` reports what is in use.
+- jupyter, for the tutorial notebooks.
+- cupy, for the GPU path (see Parallelization below).
 
 # Installation (from pip)
 
@@ -29,13 +41,20 @@ Optional: jupyter, cupy
 
 `pip install numpy lmfit xmltodict matplotlib pandas`
 
+and, optionally, `pip install numba`
+
 ## Install ExTrack
 
 `pip install extrack`
 
 https://pypi.org/project/extrack/
 
-the current version (1.5) has working but oudated version of the position refinement method. It may only work for 2-state models. This will be updated as soon as possible.
+The release on PyPI can lag behind this repository. In particular, the position
+refinement in this repository has been verified position by position against an
+exact reference (every sequence of states enumerated, the posterior of each
+solved in closed form) for 1, 2, 3 and 4 states -- see
+`validation_moment_matching/test_refinement_multistate.py`. Install from this
+GitHub repository to get that version.
 
 ## Input file format
 
@@ -132,11 +151,28 @@ This program is released under the GNU General Public License version 3 or upper
 Multiple CPU Parallelization can be performed in get_2DSPT_params with the argument worker the number of cores used for the job (equal to 1 by default).
 Warning: Do not work on windows.
 
+On Windows (and anywhere else), the numba kernels are the way to use several
+cores: `extrack.tracking.set_numba('auto', threads = 8)`. The recursion is a
+short parallel region entered once per time step, so the useful range is narrow
+-- measured on a 24 core i9-14900K the best point is around 8 threads, and 16 or
+more is slower again because the thread pool then costs more than the step.
+
 GPU parallelization used to be available but may not be compatible with the current CPU parallelization, GPU parallelization uses the package cupy which can be installed as described here : https://github.com/cupy/cupy. The cupy version will depend on your cuda version which itself must be compatible with your GPU driver and GPU. Usage of cupy requires a change in the module extrack/tracking (line 4) : GPU_computing = True
 
 # Graphical User interface of ExTrack
 
 The Graphical User interface of ExTrack can be used with the script ExTrack_GUI.py.
+
+It offers four single-dataset analyses -- model fitting, state labeling, state
+lifetime histograms and position refinement -- and three batch analyses that run
+over every csv/xml file of a folder: `Batch Fitting`, `Batch Fitting + Labeling`
+and `Batch All`. Browse takes either a file or a folder (a folder is what the
+batch analyses need). A batch writes its results to a `Results` folder next to
+the dataset folder rather than among the data: one track file per replicate
+holding the state predictions, the refined positions and their localization
+error together, plus a single `batch_fitting_summary.csv` gathering the fitted
+parameters of every replicate, which is also shown as a table when the batch
+ends.
 
 # Stand-alone Version
 

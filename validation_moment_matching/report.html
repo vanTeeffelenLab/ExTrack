@@ -1,0 +1,497 @@
+<title>ExTrack Branch Fusion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+
+<style>
+:root{
+  --ground:#eef1f5;
+  --surface:#ffffff;
+  --surface-2:#f6f8fa;
+  --ink:#131922;
+  --ink-2:#414b5c;
+  --ink-3:#6d7889;
+  --rule:#d5dbe4;
+  --rule-soft:#e5eaf0;
+  --navy:#22355e;
+  --teal:#1f6f63;
+  --gold:#b07d16;
+  --slate:#7c869c;
+  --good-bg:#e2f0ec;
+  --warn-bg:#f6eddb;
+  --flat-bg:#e9edf3;
+  --shadow:0 1px 2px rgba(19,25,34,.06), 0 8px 24px -14px rgba(19,25,34,.28);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0e131b;
+    --surface:#151c26;
+    --surface-2:#1a222e;
+    --ink:#e3e8f1;
+    --ink-2:#b3bccc;
+    --ink-3:#828d9e;
+    --rule:#2a3441;
+    --rule-soft:#212a36;
+    --navy:#8ea6d8;
+    --teal:#4fbfae;
+    --gold:#e0ac4c;
+    --slate:#8a94a8;
+    --good-bg:#16302c;
+    --warn-bg:#332a17;
+    --flat-bg:#1f2734;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -16px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0e131b;
+  --surface:#151c26;
+  --surface-2:#1a222e;
+  --ink:#e3e8f1;
+  --ink-2:#b3bccc;
+  --ink-3:#828d9e;
+  --rule:#2a3441;
+  --rule-soft:#212a36;
+  --navy:#8ea6d8;
+  --teal:#4fbfae;
+  --gold:#e0ac4c;
+  --slate:#8a94a8;
+  --good-bg:#16302c;
+  --warn-bg:#332a17;
+  --flat-bg:#1f2734;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -16px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,Segoe UI,Helvetica,Arial,sans-serif;
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:60rem;margin:0 auto;padding:clamp(1.5rem,4vw,3.5rem) clamp(1rem,4vw,2.5rem) 5rem}
+.prose{max-width:40rem}
+
+h1,h2,h3{font-family:"IBM Plex Serif",Georgia,serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,5vw,3rem);line-height:1.1;letter-spacing:-.015em}
+h2{font-size:clamp(1.35rem,2.6vw,1.75rem);line-height:1.2;letter-spacing:-.01em}
+h3{font-size:1.05rem;line-height:1.3}
+p{margin:0}
+a{color:var(--teal)}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+code{font-size:.86em;background:var(--surface-2);border:1px solid var(--rule-soft);border-radius:4px;padding:.08em .34em}
+
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace;font-size:.7rem;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);
+}
+
+header.hero{border-bottom:1px solid var(--rule);padding-bottom:2.5rem;margin-bottom:3rem;display:flex;flex-direction:column;gap:1.25rem}
+.hero .lede{font-size:1.1rem;color:var(--ink-2);max-width:38rem}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;font-family:"IBM Plex Mono",monospace;font-size:.75rem;color:var(--ink-3)}
+.meta b{font-weight:500;color:var(--ink-2)}
+
+section{margin-bottom:3.5rem;display:flex;flex-direction:column;gap:1.1rem}
+.sechead{display:flex;flex-wrap:wrap;align-items:baseline;gap:.75rem 1rem;border-top:2px solid var(--ink);padding-top:.9rem}
+.sechead h2{flex:1 1 18rem}
+
+.verdict{
+  font-family:"IBM Plex Mono",monospace;font-size:.68rem;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;padding:.3rem .6rem;border-radius:3px;white-space:nowrap;
+}
+.v-better{background:var(--good-bg);color:var(--teal)}
+.v-flat{background:var(--flat-bg);color:var(--ink-2)}
+.v-cost{background:var(--warn-bg);color:var(--gold)}
+
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--rule-soft);border-radius:6px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:.83rem;font-variant-numeric:tabular-nums}
+caption{caption-side:top;text-align:left;padding:.85rem 1rem .1rem;font-size:.8rem;color:var(--ink-3)}
+th,td{padding:.44rem .8rem;text-align:right;white-space:nowrap;border-bottom:1px solid var(--rule-soft)}
+th:first-child,td:first-child{text-align:left}
+thead th{
+  font-family:"IBM Plex Mono",monospace;font-size:.68rem;font-weight:500;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--rule);vertical-align:bottom;
+}
+tbody tr:last-child td{border-bottom:none}
+tbody tr.total td{border-top:1px solid var(--rule);font-weight:600;background:var(--surface-2)}
+td.num,th.num{font-family:"IBM Plex Mono",monospace}
+.col-old{color:var(--slate)}
+.col-new{color:var(--teal);font-weight:500}
+.gain{color:var(--ink-2)}
+.gain.up{color:var(--teal);font-weight:500}
+.gain.down{color:var(--gold)}
+.grp{border-left:1px solid var(--rule-soft)}
+
+.callout{
+  background:var(--surface);border:1px solid var(--rule-soft);border-radius:6px;
+  padding:1.1rem 1.25rem;display:flex;flex-direction:column;gap:.6rem;box-shadow:var(--shadow);
+}
+.callout .eyebrow{color:var(--teal)}
+.formula{
+  background:var(--surface-2);border:1px solid var(--rule-soft);border-radius:6px;
+  padding:1rem 1.2rem;overflow-x:auto;font-family:"IBM Plex Mono",monospace;font-size:.82rem;
+  line-height:1.75;color:var(--ink-2);
+}
+.formula .hi{color:var(--teal);font-weight:600}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.9rem}
+.card{background:var(--surface);border:1px solid var(--rule-soft);border-radius:6px;padding:1rem 1.1rem;display:flex;flex-direction:column;gap:.3rem;box-shadow:var(--shadow)}
+.card .k{font-family:"IBM Plex Mono",monospace;font-size:1.5rem;font-weight:600;letter-spacing:-.02em;color:var(--teal);font-variant-numeric:tabular-nums}
+.card .k.neutral{color:var(--ink)}
+.card .k.cost{color:var(--gold)}
+.card .lab{font-size:.8rem;color:var(--ink-2);line-height:1.4}
+
+figure{margin:0;display:flex;flex-direction:column;gap:.7rem}
+figcaption{font-size:.8rem;color:var(--ink-3);max-width:40rem}
+.diagram{background:var(--surface);border:1px solid var(--rule-soft);border-radius:6px;padding:1.1rem;box-shadow:var(--shadow);overflow-x:auto}
+.diagram svg{display:block;width:100%;height:auto;min-width:34rem}
+
+ul{margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.55rem}
+li{padding-left:.2rem}
+li::marker{color:var(--ink-3)}
+
+.files{display:grid;gap:.35rem;font-size:.85rem}
+.files div{display:grid;grid-template-columns:minmax(11rem,auto) 1fr;gap:.5rem 1.25rem;padding:.42rem 0;border-bottom:1px solid var(--rule-soft)}
+.files div:last-child{border-bottom:none}
+.files .f{font-family:"IBM Plex Mono",monospace;font-size:.8rem;color:var(--navy)}
+
+footer{border-top:1px solid var(--rule);padding-top:1.5rem;color:var(--ink-3);font-size:.82rem;display:flex;flex-direction:column;gap:.5rem}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+@media (max-width:34rem){
+  .files div{grid-template-columns:1fr}
+}
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="eyebrow">ExTrack &middot; branch fusion</span>
+  <h1>The fused Gaussian was too narrow</h1>
+  <p class="lede">ExTrack collapses branches of the tree of states into one Gaussian at every step. It matched the mean of the mixture but dropped the spread of the branch means, so every fused message was over-confident. Here is the correction, the evidence that it helps, and a second, much cheaper way to organise the same buffer, transposed from ExaTrack.</p>
+  <div class="meta">
+    <span><b>Repo</b> Data/GitHub/ExTrack</span>
+    <span><b>Touched</b> extrack/tracking.py, extrack/refined_localization.py</span>
+    <span><b>Reference</b> the fusion-free likelihood, exact to 1e-14</span>
+    <span><b>Date</b> 1 Sep 2026</span>
+  </div>
+</header>
+
+<section>
+  <div class="sechead">
+    <h2>What the fusion was doing</h2>
+    <span class="verdict v-better">one missing term</span>
+  </div>
+  <div class="prose" style="display:flex;flex-direction:column;gap:1rem">
+    <p>At each step the recursion carries, per track and per sequence of states <span class="mono">b</span>, a log weight <span class="mono">LP_b</span> and a Gaussian <span class="mono">N(r; m_b, s2_b)</span> over the current position. Branches that became nearly equivalent are fused, i.e. a mixture is replaced by a single Gaussian. <span class="mono">fuse_tracks_th</span> took a weighted average of both the means and the variances:</p>
+  </div>
+  <div class="formula">mu_j&nbsp;&nbsp; = sum_b w_b m_bj<br>
+sig2_j = sum_b w_b s2_b&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="col-old">&larr; only the within-branch half</span></div>
+  <div class="prose" style="display:flex;flex-direction:column;gap:1rem">
+    <p>The mean is right. The variance is the <em>law of total variance</em>, and only its first half was there. The spread of the branch means was dropped, so the fused Gaussian was systematically too narrow and the recursion behaved as if the particle's position were known better than it is. <span class="mono">fuse_gaussians</span> now computes, per spatial dimension and with scalar formulas only:</p>
+  </div>
+  <div class="formula">LP&nbsp;&nbsp;&nbsp;&nbsp; = log sum_b exp(LP_b)<br>
+mu_j&nbsp;&nbsp; = sum_b w_b m_bj<br>
+sig2_j = sum_b w_b s2_b <span class="hi">+ sum_b w_b (m_bj - mu_j)**2</span></div>
+  <div class="prose"><p>No covariance matrix is ever formed, so the message stays in the family the recursion propagates &mdash; a mean and a variance per dimension, which <span class="mono">log_integrale_dif</span> already accepts. The only part of the exact second moment that is dropped is the off-diagonal, which would need a matrix formulation. <span class="mono">set_fusion_method(moment_matching=False)</span> restores the old behaviour for A/B runs.</p></div>
+  <div class="callout">
+    <span class="eyebrow">How the claim is checked</span>
+    <p style="font-size:.92rem;color:var(--ink-2)">Switching the fusion off leaves ExTrack's likelihood <em>exact</em> &mdash; it is the only approximation in it. That fusion-free mode agrees to <span class="mono">1e-14</span> with an independent brute-force enumeration of all <span class="mono">2**T</span> state sequences, written with matrices so it shares no code with the recursion. Every number below is measured against it.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sechead">
+    <h2>The likelihood itself</h2>
+    <span class="verdict v-better">better at 39 of 40 models</span>
+  </div>
+  <div class="prose"><p>Before any fitting: how far is the approximate log likelihood from the exact one, at the true parameters, on the same tracks? Two settings &mdash; the requested 7-point tracks where the fusion barely engages, and 12-point tracks with a 4-frame memory where it fully does.</p></div>
+  <div class="cards">
+    <div class="card"><span class="k">19/20</span><span class="lab">models with a smaller per-track error, 7-point tracks, <span class="mono">frame_len 6</span></span></div>
+    <div class="card"><span class="k">20/20</span><span class="lab">models with a smaller per-track error, 12-point tracks, <span class="mono">frame_len 4</span></span></div>
+    <div class="card"><span class="k">2.10&times;</span><span class="lab">smaller total log-likelihood bias at 7 points</span></div>
+    <div class="card"><span class="k">1.36&times;</span><span class="lab">smaller rms per-track error at 12 points</span></div>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <caption>Root-mean-square per-track error against the fusion-free likelihood, in nats. 2&nbsp;000 tracks per model (1&nbsp;000 at 12 points), <span class="mono">d0&nbsp;=&nbsp;0</span>, LocErr 0.02&nbsp;&micro;m.</caption>
+      <thead>
+        <tr>
+          <th rowspan="2">d1 (&micro;m/step)</th><th rowspan="2" class="num">d1 / LocErr</th>
+          <th colspan="3" class="grp" style="text-align:center">7 points, frame_len 6</th>
+          <th colspan="3" class="grp" style="text-align:center">12 points, frame_len 4</th>
+        </tr>
+        <tr>
+          <th class="num grp">legacy</th><th class="num">moment m.</th><th class="num">gain</th>
+          <th class="num grp">legacy</th><th class="num">moment m.</th><th class="num">gain</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>0.010</td><td class="num">0.5</td><td class="num grp col-old">4.75e-3</td><td class="num col-new">4.52e-3</td><td class="num gain">1.05&times;</td><td class="num grp col-old">2.19e-2</td><td class="num col-new">1.84e-2</td><td class="num gain up">1.19&times;</td></tr>
+        <tr><td>0.015</td><td class="num">0.75</td><td class="num grp col-old">2.25e-3</td><td class="num col-new">2.01e-3</td><td class="num gain up">1.12&times;</td><td class="num grp col-old">2.20e-2</td><td class="num col-new">1.65e-2</td><td class="num gain up">1.33&times;</td></tr>
+        <tr><td>0.020</td><td class="num">1.0</td><td class="num grp col-old">1.62e-3</td><td class="num col-new">9.53e-4</td><td class="num gain up">1.69&times;</td><td class="num grp col-old">2.77e-2</td><td class="num col-new">2.06e-2</td><td class="num gain up">1.34&times;</td></tr>
+        <tr><td>0.030</td><td class="num">1.5</td><td class="num grp col-old">1.29e-3</td><td class="num col-new">6.94e-4</td><td class="num gain up">1.86&times;</td><td class="num grp col-old">3.48e-2</td><td class="num col-new">2.46e-2</td><td class="num gain up">1.41&times;</td></tr>
+        <tr><td>0.040</td><td class="num">2.0</td><td class="num grp col-old">1.15e-3</td><td class="num col-new">5.79e-4</td><td class="num gain up">1.98&times;</td><td class="num grp col-old">4.02e-2</td><td class="num col-new">2.78e-2</td><td class="num gain up">1.45&times;</td></tr>
+        <tr class="total"><td>mean</td><td class="num"></td><td class="num grp col-old">2.21e-3</td><td class="num col-new">1.75e-3</td><td class="num gain up">1.26&times;</td><td class="num grp col-old">2.93e-2</td><td class="num col-new">2.16e-2</td><td class="num gain up">1.36&times;</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="prose"><p>Each row averages the four transition probabilities 0.02, 0.05, 0.1 and 0.2 per step. The gain grows with the contrast between the two states, which is what the correction predicts: the term that was missing is the spread of the branch means, and that spread is largest when an immobile hypothesis is being merged with a mobile one.</p></div>
+</section>
+
+<section>
+  <div class="sechead">
+    <h2>Where each fusion puts the maximum</h2>
+    <span class="verdict v-better">closer at 117 of 160</span>
+  </div>
+  <div class="prose"><p>A fit mixes the fusion error with sampling noise and optimizer behaviour. Scanning one parameter at a time with the others held at the truth removes the last two, and locating the maximum by parabolic interpolation gives the bias the fusion alone puts on that parameter.</p></div>
+  <div class="tablewrap">
+    <table>
+      <caption>Mean absolute distance from the exact maximum, in per cent of the true value (<span class="mono">D0</span>, whose truth is 0, in per cent of the scan range). 20 models per setting.</caption>
+      <thead>
+        <tr>
+          <th rowspan="2">parameter</th>
+          <th colspan="3" class="grp" style="text-align:center">7 points, frame_len 6</th>
+          <th colspan="3" class="grp" style="text-align:center">12 points, frame_len 4</th>
+        </tr>
+        <tr>
+          <th class="num grp">legacy</th><th class="num">moment m.</th><th class="num">gain</th>
+          <th class="num grp">legacy</th><th class="num">moment m.</th><th class="num">gain</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>D1</td><td class="num grp col-old">0.131&nbsp;%</td><td class="num col-new">0.041&nbsp;%</td><td class="num gain up">3.19&times;</td><td class="num grp col-old">0.342&nbsp;%</td><td class="num col-new">0.210&nbsp;%</td><td class="num gain up">1.63&times;</td></tr>
+        <tr><td>LocErr</td><td class="num grp col-old">0.005&nbsp;%</td><td class="num col-new">0.002&nbsp;%</td><td class="num gain up">2.78&times;</td><td class="num grp col-old">0.052&nbsp;%</td><td class="num col-new">0.019&nbsp;%</td><td class="num gain up">2.70&times;</td></tr>
+        <tr><td>D0</td><td class="num grp col-old">0.253&nbsp;%</td><td class="num col-new">0.215&nbsp;%</td><td class="num gain up">1.18&times;</td><td class="num grp col-old">1.475&nbsp;%</td><td class="num col-new">1.074&nbsp;%</td><td class="num gain up">1.37&times;</td></tr>
+        <tr><td>p01</td><td class="num grp col-old">0.220&nbsp;%</td><td class="num col-new">0.291&nbsp;%</td><td class="num gain down">0.75&times;</td><td class="num grp col-old">1.098&nbsp;%</td><td class="num col-new">0.939&nbsp;%</td><td class="num gain up">1.17&times;</td></tr>
+        <tr class="total"><td>closer to the exact maximum</td><td class="num grp col-old"></td><td class="num col-new">62 / 80</td><td class="num"></td><td class="num grp col-old"></td><td class="num col-new">55 / 80</td><td class="num"></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="prose"><p>The biases are small in absolute terms &mdash; tenths of a per cent &mdash; because the fusion is a good approximation to begin with. What matters is that they shrink, and that the one case where they do not (<span class="mono">p01</span> at 7 points, where the fusion has one step to act on) reverses once the fusion actually engages.</p></div>
+</section>
+
+<section>
+  <div class="sechead">
+    <h2>Fitted parameters, 2-state grid</h2>
+    <span class="verdict v-flat">neutral when identifiable</span>
+    <span class="verdict v-better">much better when not</span>
+  </div>
+  <div class="prose"><p>The requested grid: <span class="mono">d0 = 0</span>, <span class="mono">d1</span> in 0.01&hellip;0.04&nbsp;&micro;m per step, transition probability 0.02 / 0.05 / 0.1 / 0.2 per step, 3 replicates, 5&nbsp;000 tracks of 7 points, LocErr 0.02&nbsp;&micro;m &mdash; 60 data sets, each fitted three times from the same imperfect starting point: with the legacy fusion, with the moment matched one, and with no fusion at all. Tracks are drawn from ExTrack's own model, so any distance to the truth is estimator bias rather than model mismatch.</p></div>
+  <div class="tablewrap">
+    <table>
+      <caption>Mean signed bias and mean absolute error against the simulation truth, over the fits in each group. All values in per cent of the true value except <span class="mono">d0</span>, whose truth is 0.</caption>
+      <thead>
+        <tr>
+          <th rowspan="2">parameter</th>
+          <th colspan="2" class="grp" style="text-align:center">d1 &ge; 0.015 &mdash; 48 fits</th>
+          <th colspan="2" class="grp" style="text-align:center">d1 = 0.01 = &frac12;&nbsp;LocErr &mdash; 12 fits</th>
+        </tr>
+        <tr>
+          <th class="num grp">legacy</th><th class="num">moment m.</th>
+          <th class="num grp">legacy</th><th class="num">moment m.</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>d1 &nbsp;<span style="color:var(--ink-3)">bias</span></td><td class="num grp col-old">+0.75&nbsp;%</td><td class="num col-new">+0.72&nbsp;%</td><td class="num grp col-old">&minus;33.8&nbsp;%</td><td class="num col-new">&minus;31.0&nbsp;%</td></tr>
+        <tr><td>LocErr &nbsp;<span style="color:var(--ink-3)">bias</span></td><td class="num grp col-old">+0.37&nbsp;%</td><td class="num col-new">+0.38&nbsp;%</td><td class="num grp col-old">+4.71&nbsp;%</td><td class="num col-new">+4.60&nbsp;%</td></tr>
+        <tr><td>T01 &nbsp;<span style="color:var(--ink-3)">bias</span></td><td class="num grp col-old">&minus;0.95&nbsp;%</td><td class="num col-new">&minus;0.85&nbsp;%</td><td class="num grp col-old">+281.8&nbsp;%</td><td class="num col-new">+41.7&nbsp;%</td></tr>
+        <tr><td>T10 &nbsp;<span style="color:var(--ink-3)">bias</span></td><td class="num grp col-old">+0.59&nbsp;%</td><td class="num col-new">+0.73&nbsp;%</td><td class="num grp col-old">+263.5&nbsp;%</td><td class="num col-new">+13.3&nbsp;%</td></tr>
+        <tr><td>F0 &nbsp;<span style="color:var(--ink-3)">bias</span></td><td class="num grp col-old">+0.64&nbsp;%</td><td class="num col-new">+0.73&nbsp;%</td><td class="num grp col-old">+11.3&nbsp;%</td><td class="num col-new">+4.9&nbsp;%</td></tr>
+        <tr class="total"><td>T01 &nbsp;<span style="color:var(--ink-3)">|err|</span></td><td class="num grp col-old">16.6&nbsp;%</td><td class="num col-new">16.7&nbsp;%</td><td class="num grp col-old">317&nbsp;%</td><td class="num col-new">75&nbsp;%</td></tr>
+        <tr class="total"><td>T10 &nbsp;<span style="color:var(--ink-3)">|err|</span></td><td class="num grp col-old">19.5&nbsp;%</td><td class="num col-new">20.0&nbsp;%</td><td class="num grp col-old">329&nbsp;%</td><td class="num col-new">95&nbsp;%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="prose" style="display:flex;flex-direction:column;gap:1rem">
+    <p><strong>Where the model is identifiable the two fusions are indistinguishable.</strong> Above <span class="mono">d1 = 0.75 &times; LocErr</span>, both recover the diffusion length to within 0.8&nbsp;%, the localization error to within 0.4&nbsp;% and the transition probabilities to within 1&nbsp;%; the residual scatter comes from the 7-point tracks, not from the fusion.</p>
+    <p><strong>At <span class="mono">d1 = &frac12;&nbsp;LocErr</span> the difference is large.</strong> There the two states are barely separable, the likelihood surface is nearly flat, and the legacy fits run away: the transition probabilities come back <em>almost four times</em> the truth. With moment matching the same data, the same starting point and the same optimizer give +42&nbsp;% and +13&nbsp;%. It also halves the bias on the mobile fraction. This is exactly the corner where an over-confident position message is fatal: the recursion pays too much attention to a difference that is really localization noise, and explains it by inventing transitions.</p>
+    <p>State annotation, at the true parameters, is unchanged &mdash; both fusions sit 3.2e-3 in mean absolute deviation from the exact posterior. At each mode's own <em>fitted</em> parameters the moment-matched posterior is 1.07&times; closer to exact, its log loss 0.5&nbsp;% lower and its accuracy 0.35&nbsp;% higher, which is the parameter improvement propagating rather than a separate effect.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sechead">
+    <h2>A cheaper buffer, from ExaTrack</h2>
+    <span class="verdict v-better">4.7&times; per likelihood</span>
+  </div>
+  <div class="prose"><p>ExTrack keeps one hypothesis per <em>sequence of states</em> over the last <span class="mono">frame_len</span> frames &mdash; <span class="mono">nb_states ** frame_len</span> of them &mdash; and prunes them back at every step with a python grouping loop of cost O(n&sup2;) whose outcome depends on the data. ExaTrack organises the same information differently: a fixed buffer indexed by <em>(steps since the last transition, current state)</em>, the oldest slab meaning "at least that old".</p></div>
+  <figure>
+    <div class="diagram">
+      <svg viewBox="0 0 640 300" role="img" aria-label="One step of the age-state buffer: twelve hypotheses branch into thirty-six and fold back into twelve">
+        <defs>
+          <marker id="ar-stay" viewBox="0 0 8 8" refX="7.2" refY="4" markerWidth="5.5" markerHeight="5.5" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" fill="var(--slate)"/>
+          </marker>
+          <marker id="ar-new" viewBox="0 0 8 8" refX="7.2" refY="4" markerWidth="5.5" markerHeight="5.5" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" fill="var(--teal)"/>
+          </marker>
+        </defs>
+
+        <g font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink-3)" letter-spacing="1.2">
+          <text x="64" y="24">BEFORE &#183; 12 HYPOTHESES</text>
+          <text x="498" y="24">AFTER &#183; 12</text>
+        </g>
+
+        <g fill="none" stroke="var(--slate)" stroke-width="1.3" opacity=".9">
+          <path d="M132 61 C 300 61, 320 111, 494 111" marker-end="url(#ar-stay)"/>
+          <path d="M132 111 C 300 111, 320 161, 494 161" marker-end="url(#ar-stay)"/>
+          <path d="M132 161 C 300 161, 320 211, 494 211" marker-end="url(#ar-stay)"/>
+          <path d="M132 211 L 494 211" marker-end="url(#ar-stay)"/>
+        </g>
+        <g fill="none" stroke="var(--teal)" stroke-width="1.3">
+          <path d="M132 55 C 300 40, 360 55, 494 58" marker-end="url(#ar-new)"/>
+          <path d="M132 105 C 300 92, 360 62, 494 58" marker-end="url(#ar-new)"/>
+          <path d="M132 155 C 300 140, 360 66, 494 58" marker-end="url(#ar-new)"/>
+          <path d="M132 205 C 300 190, 360 70, 494 58" marker-end="url(#ar-new)"/>
+        </g>
+
+        <g fill="var(--surface-2)" stroke="var(--rule)">
+          <rect x="64" y="46" width="68" height="30" rx="4"/>
+          <rect x="64" y="96" width="68" height="30" rx="4"/>
+          <rect x="64" y="146" width="68" height="30" rx="4"/>
+          <rect x="64" y="196" width="68" height="30" rx="4"/>
+          <rect x="498" y="96" width="68" height="30" rx="4"/>
+          <rect x="498" y="146" width="68" height="30" rx="4"/>
+          <rect x="498" y="196" width="68" height="30" rx="4"/>
+        </g>
+        <rect x="498" y="46" width="68" height="30" rx="4" fill="var(--good-bg)" stroke="var(--teal)"/>
+
+        <g font-family="IBM Plex Mono, monospace" font-size="10.5" text-anchor="middle" fill="var(--ink-2)">
+          <text x="98" y="65">0, s</text>
+          <text x="98" y="115">1, s</text>
+          <text x="98" y="165">2, s</text>
+          <text x="98" y="215">&#8805;3, s</text>
+          <text x="532" y="65" fill="var(--teal)" font-weight="600">0, j</text>
+          <text x="532" y="115">1, s</text>
+          <text x="532" y="165">2, s</text>
+          <text x="532" y="215">&#8805;3, s</text>
+        </g>
+        <g font-family="IBM Plex Mono, monospace" font-size="9.5" text-anchor="end" fill="var(--ink-3)">
+          <text x="56" y="65">age 0</text>
+          <text x="56" y="115">age 1</text>
+          <text x="56" y="165">age 2</text>
+          <text x="56" y="215">oldest</text>
+        </g>
+
+        <g font-family="IBM Plex Sans, sans-serif" font-size="11.5">
+          <line x1="64" y1="248" x2="576" y2="248" stroke="var(--rule-soft)" stroke-width="1"/>
+          <line x1="64" y1="264" x2="86" y2="264" stroke="var(--slate)" stroke-width="1.3"/>
+          <text x="94" y="268" fill="var(--ink-2)">stay &#8212; the age advances, nothing is fused</text>
+          <line x1="64" y1="286" x2="86" y2="286" stroke="var(--teal)" stroke-width="1.3"/>
+          <text x="94" y="290" fill="var(--ink-2)">transition &#8212; every source arriving in j is fused into one newborn</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>One step of the <span class="mono">'ages'</span> buffer for a 3-state model at <span class="mono">frame_len = 4</span>. What it keeps is what the carried Gaussian actually depends on: how much diffusion has accumulated since the last transition. What it gives up is the identity of the states before the current segment, and the exact age past <span class="mono">frame_len&nbsp;&minus;&nbsp;1</span>.</figcaption>
+  </figure>
+  <div class="tablewrap">
+    <table>
+      <caption>Per track and per step, at 3 states.</caption>
+      <thead><tr><th>scheme</th><th class="num">hypotheses</th><th class="num">branches / step</th><th class="num">grouping</th></tr></thead>
+      <tbody>
+        <tr><td class="col-old">sequences <span style="color:var(--ink-3)">(current)</span></td><td class="num col-old">nb_states ** frame_len</td><td class="num col-old">nb_states ** (frame_len+1)</td><td class="num col-old">python loop, O(n&sup2;), data dependent</td></tr>
+        <tr><td class="col-new">ages <span style="color:var(--ink-3)">(new)</span></td><td class="num col-new">frame_len &times; nb_states</td><td class="num col-new">frame_len &times; nb_states&sup2;</td><td class="num col-new">none, the layout is static</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="prose"><p>It is available as <span class="mono">param_fitting(&hellip;, sequence_scheme='ages')</span> and <span class="mono">predict_Bs(&hellip;, sequence_scheme='ages')</span>; the default is unchanged. Every fusion inside it is the moment matched one, which matters more here than in the historical scheme because the newborn fusion pools hypotheses whose means are genuinely far apart. Two properties are asserted by the test suite rather than assumed: when all states share one diffusion length every fusion is between identical Gaussians, and the scheme then reproduces the exact likelihood <em>and</em> the exact state posterior to <span class="mono">1e-14</span>; and the buffer really is <span class="mono">frame_len &times; nb_states</span> at 2, 3 and 4 states.</p></div>
+</section>
+
+<section>
+  <div class="sechead">
+    <h2>What the coarser buffer costs</h2>
+    <span class="verdict v-cost">~1.5&times; on rates, ~6&times; faster</span>
+  </div>
+  <div class="prose"><p>The requested 3-state test: <span class="mono">d0 = 0</span>, <span class="mono">d1 = k&nbsp;&times;&nbsp;LocErr</span>, <span class="mono">d2 = 3k&nbsp;&times;&nbsp;LocErr</span> for ten values of <span class="mono">k</span>, every transition probability 0.05 per step, 3 replicates, 5&nbsp;000 tracks of 12 points, <span class="mono">sequence_length = 4</span>. Both schemes use the moment matched fusion and the same starting point, so what is measured is the price of the coarser state memory alone.</p></div>
+  <div class="cards">
+    <div class="card"><span class="k">4.7&times;</span><span class="lab">faster per likelihood evaluation<br><span class="mono" style="color:var(--ink-3);font-size:.75rem">2.75 s &rarr; 0.58 s</span></span></div>
+    <div class="card"><span class="k">5.9&times;</span><span class="lab">faster per full fit, median of the per-point ratios<br><span class="mono" style="color:var(--ink-3);font-size:.75rem">1711 s &rarr; 321 s</span></span></div>
+    <div class="card"><span class="k cost">1.8&times;</span><span class="lab">larger error on <span class="mono">d1</span> where the model is identifiable</span></div>
+    <div class="card"><span class="k neutral">&minus;0.1&nbsp;%</span><span class="lab">state annotation accuracy &mdash; essentially unchanged</span></div>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <caption>Mean absolute error against the simulation truth, pooled over the fits in each group. Transition rates are the mean over the six off-diagonal entries.</caption>
+      <thead>
+        <tr>
+          <th rowspan="2">quantity</th>
+          <th colspan="3" class="grp" style="text-align:center">all k &mdash; 30 fits</th>
+          <th colspan="3" class="grp" style="text-align:center">k &ge; 0.8 &mdash; 21 fits</th>
+        </tr>
+        <tr>
+          <th class="num grp">sequences</th><th class="num">ages</th><th class="num">cost</th>
+          <th class="num grp">sequences</th><th class="num">ages</th><th class="num">cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>d1</td><td class="num grp col-new">6.88&nbsp;%</td><td class="num">8.50&nbsp;%</td><td class="num gain down">1.24&times;</td><td class="num grp col-new">1.01&nbsp;%</td><td class="num">1.83&nbsp;%</td><td class="num gain down">1.80&times;</td></tr>
+        <tr><td>d2</td><td class="num grp col-new">1.84&nbsp;%</td><td class="num">1.35&nbsp;%</td><td class="num gain up">0.74&times;</td><td class="num grp col-new">0.50&nbsp;%</td><td class="num">0.47&nbsp;%</td><td class="num gain up">0.95&times;</td></tr>
+        <tr><td>LocErr</td><td class="num grp col-new">0.53&nbsp;%</td><td class="num">0.55&nbsp;%</td><td class="num gain">1.04&times;</td><td class="num grp col-new">0.36&nbsp;%</td><td class="num">0.44&nbsp;%</td><td class="num gain down">1.22&times;</td></tr>
+        <tr><td>transition rates</td><td class="num grp col-new">15.6&nbsp;%</td><td class="num">18.8&nbsp;%</td><td class="num gain down">1.20&times;</td><td class="num grp col-new">6.54&nbsp;%</td><td class="num">9.77&nbsp;%</td><td class="num gain down">1.49&times;</td></tr>
+        <tr><td>d0 (&micro;m, truth 0)</td><td class="num grp col-new">0.0011</td><td class="num">0.0011</td><td class="num gain">1.02&times;</td><td class="num grp col-new">0.0002</td><td class="num">0.0005</td><td class="num gain down">&mdash;</td></tr>
+        <tr class="total"><td>state accuracy</td><td class="num grp col-new">0.7397</td><td class="num">0.7372</td><td class="num gain">&minus;0.24&nbsp;pt</td><td class="num grp col-new">0.8242</td><td class="num">0.8234</td><td class="num gain">&minus;0.08&nbsp;pt</td></tr>
+        <tr class="total"><td>state log loss</td><td class="num grp col-new">0.5742</td><td class="num">0.5721</td><td class="num gain up">&minus;0.4&nbsp;%</td><td class="num grp col-new">0.4307</td><td class="num">0.4356</td><td class="num gain down">+1.1&nbsp;%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="prose" style="display:flex;flex-direction:column;gap:1rem">
+    <p>The trade is: about <strong>1.5&ndash;1.8&times; more error on the diffusion length of the middle state and on the transition rates</strong>, nothing measurable on the top diffusion length or the localization error, <strong>no measurable cost on the state annotation</strong> (0.08 accuracy points at <span class="mono">k &ge; 0.8</span>, and the coarse buffer is actually ahead on log loss when the small-<span class="mono">k</span> models are included), for <strong>about six times the speed</strong>.</p>
+    <p>Below <span class="mono">k = 0.8</span> the three states overlap inside the localization error and both schemes are far from the truth &mdash; the pooled "all k" column is dominated by that corner and should not be read as a property of the scheme.</p>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <caption>Cost / accuracy frontier, 3 states, 300 tracks of 8 points, measured against the fusion-free likelihood (3<sup>8</sup> = 6&nbsp;561 sequences). Mean |log-likelihood error| per track, in nats.</caption>
+      <thead><tr><th>scheme</th><th class="num">frame_len</th><th class="num">hypotheses</th><th class="num">k = 0.4</th><th class="num">k = 1.0</th><th class="num">k = 2.0</th><th class="num">k = 3.0</th><th class="num">s / eval</th></tr></thead>
+      <tbody>
+        <tr><td class="col-old">sequences</td><td class="num">2</td><td class="num">9</td><td class="num">2.1e-2</td><td class="num">2.4e-2</td><td class="num">2.3e-2</td><td class="num">1.8e-2</td><td class="num">0.078</td></tr>
+        <tr><td class="col-old">sequences</td><td class="num">3</td><td class="num">27</td><td class="num">7.6e-3</td><td class="num">8.0e-3</td><td class="num">6.8e-3</td><td class="num">5.4e-3</td><td class="num">0.128</td></tr>
+        <tr><td class="col-old">sequences</td><td class="num">4</td><td class="num">81</td><td class="num">2.9e-3</td><td class="num">2.8e-3</td><td class="num">2.8e-3</td><td class="num">2.4e-3</td><td class="num">0.119</td></tr>
+        <tr><td class="col-old">sequences</td><td class="num">5</td><td class="num">243</td><td class="num">1.5e-3</td><td class="num">1.2e-3</td><td class="num">1.3e-3</td><td class="num">1.2e-3</td><td class="num">0.168</td></tr>
+        <tr><td class="col-new">ages</td><td class="num">2</td><td class="num">6</td><td class="num">3.8e-2</td><td class="num">5.0e-2</td><td class="num">5.9e-2</td><td class="num">6.0e-2</td><td class="num">0.014</td></tr>
+        <tr><td class="col-new">ages</td><td class="num">4</td><td class="num">12</td><td class="num">2.5e-2</td><td class="num">3.5e-2</td><td class="num">4.5e-2</td><td class="num">5.1e-2</td><td class="num">0.015</td></tr>
+        <tr><td class="col-new">ages</td><td class="num">8</td><td class="num">24</td><td class="num">2.4e-2</td><td class="num">3.4e-2</td><td class="num">4.5e-2</td><td class="num">5.2e-2</td><td class="num">0.019</td></tr>
+        <tr><td class="col-new">ages</td><td class="num">12</td><td class="num">36</td><td class="num">2.4e-2</td><td class="num">3.4e-2</td><td class="num">4.5e-2</td><td class="num">5.2e-2</td><td class="num">0.017</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="prose"><p><strong>The <span class="mono">'ages'</span> error saturates at <span class="mono">frame_len&nbsp;=&nbsp;4</span> and a longer memory buys nothing</strong> &mdash; 12 age slabs give the same answer as 4. So the savings cannot be spent on a deeper buffer. What it is missing is not age resolution but the <em>identity of the state before the current segment</em>: with three states, a particle arriving in state <span class="mono">j</span> could have come from either of the other two, and the newborn fusion pools two genuinely different Gaussians. That is precisely what ExaTrack's <span class="mono">nb_kept_transitions</span> option fixes &mdash; remember the previous state as well, buffer <span class="mono">frame_len &times; nb_states&sup2;</span> &mdash; and its own benchmark measures 3&ndash;5&times; from it at three states and almost nothing at two. Note also that the <span class="mono">'ages'</span> error <em>grows</em> with the state separation <span class="mono">k</span> while the sequence error is flat: the same signature ExaTrack records, that what drives a fusion error is how dissimilar the pooled Gaussians are.</p></div>
+</section>
+
+<section>
+  <div class="sechead">
+    <h2>Two things worth knowing</h2>
+    <span class="verdict v-flat">traps</span>
+  </div>
+  <ul>
+    <li><strong><span class="mono">sim_noBias</span> does not simulate ExTrack's model.</strong> It splits every frame into 30 substeps, so a transition can happen anywhere inside a frame and a particle can even switch twice; the frame-level model cannot represent that and absorbs it as extra transitions. Measured: a requested <span class="mono">p = 0.1</span> comes back as <span class="mono">0.14</span> from a fit &mdash; with the exact, fusion-free likelihood. The mismatch is identical for every fusion mode but it dominates the distance to the truth, which is why the sweeps here draw tracks from the frame-level model instead.</li>
+    <li><strong><span class="mono">get_pos_PDF</span> assumed one variance for all dimensions.</strong> A moment matched fusion returns one variance <em>per dimension</em>, and a hardcoded <span class="mono">reshape(&hellip;, 1)</span> in <span class="mono">refined_localization</span> broke on it. Fixed by keeping that width dynamic, which also removes a silent mishandling of per-dimension localization errors that was already there.</li>
+  </ul>
+</section>
+
+<section>
+  <div class="sechead">
+    <h2>Where things are</h2>
+  </div>
+  <div class="files">
+    <div><span class="f">extrack/tracking.py</span><span><span class="mono">fuse_gaussians</span>, <span class="mono">set_fusion_method</span>, the three fusion call sites, <span class="mono">P_Cs_inter_bound_stats_ages</span>, and <span class="mono">sequence_scheme</span> threaded through <span class="mono">Proba_Cs</span> / <span class="mono">cum_Proba_Cs</span> / <span class="mono">param_fitting</span> / <span class="mono">predict_Bs</span></span></div>
+    <div><span class="f">extrack/refined_localization.py</span><span>the dynamic variance width in <span class="mono">get_pos_PDF</span></span></div>
+    <div><span class="f">validation_moment_matching/</span><span>everything below, plus a README</span></div>
+    <div><span class="f">&nbsp;&nbsp;bruteforce.py</span><span>the independent likelihood and posterior by full enumeration</span></div>
+    <div><span class="f">&nbsp;&nbsp;test_fuse_gaussians.py</span><span>18 unit checks on the fusion &mdash; all passing</span></div>
+    <div><span class="f">&nbsp;&nbsp;test_ages_scheme.py</span><span>exactness, buffer size, accuracy of the new scheme &mdash; all passing</span></div>
+    <div><span class="f">&nbsp;&nbsp;bias_of_the_maximum.py</span><span>the argmax-bias analysis, no optimizer involved</span></div>
+    <div><span class="f">&nbsp;&nbsp;sweep_2states.py</span><span>the 5 &times; 4 &times; 3 grid, three fusion modes each</span></div>
+    <div><span class="f">&nbsp;&nbsp;sweep_3states.py</span><span>the 10 &times; 3 grid, both schemes</span></div>
+    <div><span class="f">&nbsp;&nbsp;frontier_3states.py</span><span>the cost / accuracy frontier</span></div>
+  </div>
+  <div class="prose"><p>Nothing is committed; the working tree carries the changes. Existing behaviour is preserved by default for the buffer scheme and changed by default for the fusion &mdash; that one is a correctness fix, so the old formula is reachable only through <span class="mono">set_fusion_method</span>.</p></div>
+</section>
+
+<footer>
+  <p>Measured on 5&nbsp;000-track data sets drawn from ExTrack's own generative model, 2 spatial dimensions, <span class="mono">dt = 0.02&nbsp;s</span>, no bleaching and no field-of-view term, so the fusion is the only approximation left in the likelihood.</p>
+  <p>Next step, if the 3-state accuracy gap matters: port ExaTrack's <span class="mono">nb_kept_transitions</span> &mdash; keep the previous state's identity alongside the age, buffer <span class="mono">frame_len &times; nb_states&sup2;</span>, still far below <span class="mono">nb_states ** frame_len</span>.</p>
+</footer>
+
+</div>

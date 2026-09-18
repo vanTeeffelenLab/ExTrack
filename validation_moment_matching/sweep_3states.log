@@ -1,0 +1,442 @@
+30 points x 2 schemes, 5000 tracks of 12 points, frame_len = 4
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+  1/30  k=0.2 rep=0   531 s
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+  2/30  k=0.2 rep=1   1624 s
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+  3/30  k=0.2 rep=2   1822 s
+  4/30  k=0.4 rep=0   1822 s
+  5/30  k=0.4 rep=1   1822 s
+  6/30  k=0.4 rep=2   1822 s
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+  7/30  k=0.6 rep=0   2574 s
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+  8/30  k=0.6 rep=1   3551 s
+  9/30  k=0.6 rep=2   3551 s
+  10/30  k=0.8 rep=0   3551 s
+  11/30  k=0.8 rep=1   3551 s
+  12/30  k=0.8 rep=2   3551 s
+  13/30  k=1.0 rep=0   3551 s
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+  14/30  k=1.0 rep=1   4019 s
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+  15/30  k=1.0 rep=2   4541 s
+  16/30  k=1.3 rep=0   4541 s
+  17/30  k=1.3 rep=1   4541 s
+  18/30  k=1.3 rep=2   4541 s
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+C:\Users\Franc\anaconda3\envs\PyExTrack\Lib\site-packages\scipy\optimize\_numdiff.py:686: RuntimeWarning: invalid value encountered in subtract
+  df = [f_eval - f0 for f_eval in f_evals]
+  19/30  k=1.6 rep=0   5454 s
+  20/30  k=1.6 rep=1   5454 s
+  21/30  k=1.6 rep=2   5454 s
+  22/30  k=2.0 rep=0   5454 s
+  23/30  k=2.0 rep=1   5454 s
+  24/30  k=2.0 rep=2   5454 s
+  25/30  k=2.5 rep=0   5454 s
+  26/30  k=2.5 rep=1   5454 s
+  27/30  k=2.5 rep=2   5454 s
+  28/30  k=3.0 rep=0   5454 s
+  29/30  k=3.0 rep=1   5578 s
+  30/30  k=3.0 rep=2   5671 s
+multiprocessing is only supported on Linux and MacOS
+version: 1.6.3
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx.............xxxxxxxxxxxxx.....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx.............xxxxxxxxxxxxx.......................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx.......................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx...........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+multiprocessing is only supported on Linux and MacOS
+version: 1.6.3
+cell_dims [1000000.0]
+..........................xxxxxxxxxxxxx..x.......................................xxxxxxxxxxxxx.x.............xxxxxxxxxxxxx..............xxxxxxxxxxxxxxxxxxxx.................................................................................xxxxxxxxxxxxx....................................................xxxx..........................xxxxxxxxxxxxxxxxxxxx..........................x..............
+cell_dims [1000000.0]
+.......................................xxxxxxxxxxxxx..x.......................................xxxxxxxxxxxxx..............xxxxxxxxxxxxxx..............xxxxxxxxxxxxxxxxxxx..................................................................xxxxxxxxxxxxxx.............xxxxxxxxxxxxxxxxxx.............x.............x.............x.
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx.......................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx..............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+multiprocessing is only supported on Linux and MacOS
+version: 1.6.3
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxxx.............xxxxxxxxxxxxx........................................xxxxxxxxxxxxxxxx..................................................................xxxxxxxxxxxxx..........................xxx.............xx.......................................xxx.
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxxx.............xxxxxxxxxxxxx........................................xxxxxxxxxxxxxxxxx.......................................xxxxxxxxxxxxx.......................................xx.............xx..........................xx.............xx.
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx...............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx......................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx..................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+multiprocessing is only supported on Linux and MacOS
+version: 1.6.3
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx.............xxxxxxxxxxxxx..................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx.............xxxxxxxxxxxxx...........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx.....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx..................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+multiprocessing is only supported on Linux and MacOS
+version: 1.6.3
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxxx.............xxxxxxxxxxxxx...........................xxxxxxxxxxxxxx..........................xxxxxxxxxxxxx.............xx.......................................x..........................xxx.x............
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxxx.............xxxxxxxxxxxxx........................................xxxxxxxxxxxxxxxxx..........................xxxxxxxxxxxxx..........................x.............xxx............................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx..................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx...........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx.............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx....................................................................................................................................................................................................................................................................xxxxxxxxxxxxxx.......................................................................................................................................................................................................................................................................................................................................................
+multiprocessing is only supported on Linux and MacOS
+version: 1.6.3
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxxx.......................................xxxxxxxxxxxxx......................................................................................................................................................................................xxxxxxxxxxxxxxx...................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxxx.............xxxxxxxxxxxxx..............xxxxxxxxxxxxx.......................................xxxxxxxxxxxxxxx.......................................xx.............xx..............
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx.........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+multiprocessing is only supported on Linux and MacOS
+version: 1.6.3
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx.............xxxxxxxxxxxxx...............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx.............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx.......................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+multiprocessing is only supported on Linux and MacOS
+version: 1.6.3
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxxx.............xxxxxxxxxxxxx...........................xxxxxxxxxxxxxxxx.....................................................xxxxxxxxxxxxx.............x.......................................xx.............xxx.
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxxx.............xxxxxxxxxxxxx........................................xxxxxxxxxxxxxxxxx....................................................xxxxxxxxxxxxx..............................................................................xxxxxxxx.............x.............x.
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx..................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx..............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxx...................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxx...................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+multiprocessing is only supported on Linux and MacOS
+version: 1.6.3
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxxx.............xxxxxxxxxxxxx..............xxxxxxxxxxxxx.............xxxxxxxxxxxxx.......................................x..........................xx.............xx.
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxxx.............xxxxxxxxxxxxx..............xxxxxxxxxxxxxx.................................................................xxxxxxxxxxxxx.............xxxxxxxxxxxxx.............x.............xxxxxxxxxxxxxxxx...........................................................................................xxxxxxxxxxxxx......................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx.........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx..................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx......................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx...........................................................................................................................................................................................................................................................................................................................................................................................................................................................
+multiprocessing is only supported on Linux and MacOS
+version: 1.6.3
+cell_dims [1000000.0]
+.......................................xxxxxxxxxxxxx..x....................................................xxxxxxxxxxxxxx..........................xxxxxxxxxxxxxxxxxxx..................................................................xxxxxxxxxxxxx..........................xxxxxxxxxxxxxxxxxx..........................xxxxxxxxxxxxx.............xxx.............x.............x.............x..............x.............
+cell_dims [1000000.0]
+.......................................xxxxxxxxxxxxx..x.......................................xxxxxxxxxxxxx.x.............xxxxxxxxxxxxx..............xxxxxxxxxxxxxxxxx........................................................................................................................................................................................................................................................................xxxxxxxxxxxxx........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx.......................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx..........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+multiprocessing is only supported on Linux and MacOS
+version: 1.6.3
+cell_dims [1000000.0]
+.......................................xxxxxxxxxxxxx..x....................................................xxxxxxxxxxxxxx..............xxxxxxxxxxxxxxxxxxx..................................................................xxxxxxxxxxxxx..........................xxxxxxxxxxxxxxx.............xxxxxxxxxxxxxxx...........................................................................................xxxxxxxxxxxxx..........................xxxxxxxxxxxxx..........................xxxxxxxxxxxxxxx.............x.............xxxxxxxxxxxxxxxxxx..........................x..........................x.
+cell_dims [1000000.0]
+.......................................xxxxxxxxxxxxx..x....................................................xxxxxxxxxxxxxx..............xxxxxxxxxxxxxxxxxxx..................................................................xxxxxxxxxxxxx..........................xxxxxxxxxxxxxxxx.............xxxxxxxxxxxxxx.................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx..............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx...........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxx...................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxx.......................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+multiprocessing is only supported on Linux and MacOS
+version: 1.6.3
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx.............xxxxxxxxxxxxx..............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxxx.............xxxxxxxxxxxxxxx..........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx.............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxxx..............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxx...................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+cell_dims [1000000.0]
+.............xxxxxxxxxxxxxx.....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+wrote C:\Users\Franc\Data\GitHub\ExTrack\validation_moment_matching\results_3states.json in 5672 s

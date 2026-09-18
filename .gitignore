@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.ipynb_checkpoints/
+
+# numba's on-disk kernel cache, written next to the module it compiles
+*.nbc
+*.nbi
+
+# Outputs written by the GUI's default save paths
+/saved_fitting_results.csv
+/saved_lifetimes.csv
+/saved_track_predictions.csv
+/saved_tracks_with_position_refinement.csv
+
+# Outputs written by the tutorial notebook (its inputs -- example_tracks.*,
+# tracks.* and simulated_tracks.xml -- are tracked and must stay)
+Tutorials/saved_tracks.csv
+Tutorials/saved_tracks.xml
+Tutorials/saved_tracks2.csv
+Tutorials/saved_tracks2.xml
+Tutorials/Results/
+Tutorials/datasets/Results/

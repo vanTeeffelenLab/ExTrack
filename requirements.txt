@@ -1,4 +1,9 @@
+numpy
 lmfit>=0.9.7
 xmltodict
 matplotlib
 pandas
+
+# optional, picked up automatically when installed: compiles the inner
+# recursion (see extrack.tracking.set_numba / numba_status)
+# numba

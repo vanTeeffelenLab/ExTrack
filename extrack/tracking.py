@@ -41,6 +41,57 @@ except:
 from itertools import product
 
 from time import time
+
+try:
+    from extrack import numba_kernels as _numba_kernels
+except Exception: # numba is optional, the numpy path stays the reference
+    _numba_kernels = None
+
+USE_NUMBA = 'auto'
+
+def set_numba(mode = 'auto', threads = None):
+    '''
+    Turn the numba kernels on or off.
+
+    mode: 'auto' (default) uses them whenever numba is installed and the inputs
+        fall inside what they cover, True is the same but raises if numba is
+        missing, False always runs the numpy implementation.
+
+    threads: number of threads for the kernels, None (default) to leave numba's
+        own setting alone. The recursion is a short parallel region called once
+        per time step, so the useful range is narrow: measured on a 24 core
+        i9-14900K the best point is around 8 (11-26x over numpy) and 16 or more
+        is slower again, the thread pool costing more than the step.
+
+    The kernels compute the same likelihood as the numpy code they replace; they
+    exist because that code spends most of its time on per-call dispatch and on
+    temporaries rather than on arithmetic. `numba_status()` reports what is in
+    use, and the first call to a kernel pays a few seconds of compilation which
+    is then cached on disk.
+    '''
+    global USE_NUMBA
+    if mode is True and (_numba_kernels is None or not _numba_kernels.NUMBA_AVAILABLE):
+        raise ImportError('numba is not installed: pip install numba, or use set_numba(False)')
+    USE_NUMBA = mode
+    if threads is not None:
+        import numba
+        numba.set_num_threads(int(threads))
+
+def numba_active():
+    ''' True when the numba kernels will be used for the next likelihood call '''
+    if USE_NUMBA is False or GPU_computing:
+        return False
+    return _numba_kernels is not None and _numba_kernels.NUMBA_AVAILABLE
+
+def numba_status():
+    if _numba_kernels is None or not _numba_kernels.NUMBA_AVAILABLE:
+        return 'numba is not installed, running the numpy implementation'
+    if not numba_active():
+        return 'numba is installed but switched off (USE_NUMBA = %s)'%repr(USE_NUMBA)
+    import numba
+    return 'numba kernels active, %d threads'%numba.get_num_threads()
+
+
 '''
 Maximum likelihood to determine transition rates :
 We compute the probability of observing the tracks knowing the parameters :
@@ -91,7 +142,7 @@ def log_integrale_dif(Ci, l2, cur_d2s, m_arr, s2_arr):
     else:
         new_s2 = ((cur_d2s*l2 + cur_d2s*s2_arr + l2*s2_arr)/l2_plus_s2_arr)
 
-    if s2_arr.shape[2] == 1:
+    if l2_plus_s2_arr.shape[2] == 1: # the variance is shared by all the dimensions, the log term is then simply repeated nb_dims times
         new_K = m_arr.shape[2] * -0.5*cp.log(2*np.pi*(l2_plus_s2_arr[:,:,0])) - cp.sum(((Ci-m_arr).astype(float))**2/(2*l2_plus_s2_arr),axis = 2)
     else:
         new_K = np.sum(-0.5*cp.log(2*np.pi*(l2_plus_s2_arr)), 2) - cp.sum(((Ci-m_arr).astype(float))**2/(2*l2_plus_s2_arr),axis = 2)
@@ -318,11 +369,119 @@ def P_Cs_inter_bound_stats(Cs, LocErr, ds, Fs, TrMat, pBL=0.1, isBL = 1, cell_di
     return LP, cur_Bs, preds
 
 
+"""
+Fusion of the branches of the tree of states : Gaussian mixture reduction.
+
+At each step the recursion carries, for every track and every sequence of states
+b, a log weight LP_b and a Gaussian N(r ; m_b, s2_b) over the current position r.
+Keeping one branch per sequence of states is impossible (their number grows as
+nb_states**track_len), so branches that became nearly equivalent are fused. Fusing
+a group of branches means replacing the mixture
+
+    sum_b exp(LP_b) * N(r ; m_b, s2_b)
+
+by a single weighted Gaussian exp(LP) * N(r ; mu, sig2). The best such
+approximation, the one that minimizes the Kullback-Leibler divergence to the
+mixture, keeps the total weight and matches the two first moments of the mixture,
+hence the name moment matching.
+"""
+
+FUSION_MOMENT_MATCHING = True # include the spread of the means of the branches in the fused variance (the exact second moment). Set to False to recover the historical behavior.
+FUSION_ISOTROPIC_VARIANCE = False # if True the spread is averaged over the dimensions so the fused Gaussian keeps a single variance for all dimensions
+
+def set_fusion_method(moment_matching = True, isotropic_variance = False):
+    '''
+    select how the Gaussians of the fused branches are combined.
+
+    moment_matching: if True (default) the variance of the fused Gaussian is the
+        exact second central moment of the mixture, i.e. the weighted average of
+        the variances of the branches plus the weighted spread of their means. If
+        False only the first term is kept, which is what ExTrack used to do and
+        which underestimates the variance.
+    isotropic_variance: if True the spread is averaged over the spatial dimensions
+        so the fused Gaussian keeps one variance for all dimensions (matching the
+        trace of the second moment instead of its diagonal). If False (default) one
+        variance per dimension is kept, which is a strictly better approximation.
+    '''
+    global FUSION_MOMENT_MATCHING, FUSION_ISOTROPIC_VARIANCE
+    FUSION_MOMENT_MATCHING = bool(moment_matching)
+    FUSION_ISOTROPIC_VARIANCE = bool(isotropic_variance)
+
+def fused_variance_shape(m_arr, s2_arr):
+    '''
+    length of the last axis of the variances produced by fuse_gaussians : the spread
+    of the means is specific to each dimension, so unless it is averaged out the
+    fused Gaussian carries one variance per dimension even when the branches did not.
+    '''
+    if FUSION_MOMENT_MATCHING and not FUSION_ISOTROPIC_VARIANCE:
+        return max(s2_arr.shape[-1], m_arr.shape[-1])
+    return s2_arr.shape[-1]
+
+def fuse_gaussians(m_arr, s2_arr, LP, axis):
+    '''
+    reduce a mixture of Gaussians to a single Gaussian by matching its 2 first moments.
+
+    With w_b = exp(LP_b) / sum_b exp(LP_b) the normalized weight of branch b, the
+    fused quantities are, for each spatial dimension j taken separately :
+
+        LP     = log( sum_b exp(LP_b) )
+        mu_j   = sum_b w_b m_bj
+        sig2_j = sum_b w_b s2_b  +  sum_b w_b (m_bj - mu_j)**2
+
+    The first variance term is the average width of the branches, the second one is
+    the spread of their means. Their sum is the law of total variance : it is the
+    exact variance of the mixture. Only the first term used to be kept, which made
+    the fused Gaussian systematically too narrow. The recursion then behaved as if
+    the position of the particle was known more precisely than it actually is, which
+    biases the fitted diffusion coefficients, localization error and transition
+    rates and makes the state probabilities overconfident.
+
+    Everything is written with scalar formulas, one per dimension, so the result
+    stays in the family of distributions the recursion propagates : a mean and a
+    variance per dimension, no covariance matrix (log_integrale_dif accepts a
+    variance per dimension natively). The only part of the exact second moment that
+    is dropped is the off diagonal sum_b w_b (m_bi - mu_i)(m_bj - mu_j), which would
+    require a matrix formulation.
+
+    arguments:
+    m_arr: means of the branches, the last axis being the spatial dimension.
+    s2_arr: variances of the branches, same layout as m_arr except that its last
+        axis may be of length 1 when the variance is shared by all the dimensions.
+    LP: log weights of the branches, the layout of m_arr without its last axis.
+    axis: int or tuple of ints, axes of LP along which the branches are fused.
+
+    outputs:
+    new_m_arr, new_s2_arr, new_LP: the moment matched Gaussian and its log weight,
+        the fused axes being removed. new_s2_arr holds one variance per dimension
+        unless the fusion is set to be isotropic (see set_fusion_method).
+    '''
+    max_LP = cp.max(LP, axis = axis, keepdims = True) # subtracted to avoid underflow of the exponentials
+    weights = cp.exp(LP - max_LP)
+    sum_weights = cp.sum(weights, axis = axis, keepdims = True)
+    weights = (weights / sum_weights)[..., None] # normalized weights, with an extra axis to match the shape of m_arr
+
+    new_m_arr = cp.sum(weights * m_arr, axis = axis, keepdims = True)
+    new_s2_arr = cp.sum(weights * s2_arr, axis = axis, keepdims = True) # average width of the branches
+
+    if FUSION_MOMENT_MATCHING:
+        spread = cp.sum(weights * (m_arr - new_m_arr)**2, axis = axis, keepdims = True) # spread of the means of the branches
+        if FUSION_ISOTROPIC_VARIANCE:
+            spread = cp.mean(spread, axis = -1, keepdims = True)
+        new_s2_arr = new_s2_arr + spread
+
+    new_LP = cp.log(sum_weights) + max_LP
+
+    new_m_arr = np.squeeze(new_m_arr, axis = axis)
+    new_s2_arr = np.squeeze(new_s2_arr, axis = axis)
+    new_LP = np.squeeze(new_LP, axis = axis)
+
+    return new_m_arr, new_s2_arr, new_LP
+
 def fuse_tracks(m_arr, s2_arr, LP, cur_nb_Bs, nb_states = 2):
     '''
-    The probabilities of the pairs of tracks must be added
-    I chose to define the updated m_arr and s2_arr as the weighted average (of the variance for s2_arr)
-    but other methods may be better
+    The probabilities of the fused branches are summed and their Gaussians are
+    reduced to a single Gaussian carrying the 2 first moments of their mixture
+    (see fuse_gaussians).
     As I must divid by a sum of exponentials which can be equal to zero because of underflow
     I correct the values in the exponetial to keep the maximal exp value at 0
     '''
@@ -339,20 +498,9 @@ def fuse_tracks(m_arr, s2_arr, LP, cur_nb_Bs, nb_states = 2):
     LPk = cp.array(LPk)
     m_arr_k = cp.array(m_arr_k)
     s2_arr_k = cp.array(s2_arr_k)
-    
-    maxLP = cp.max(LPk, axis = 0, keepdims = True)
-    Pk = cp.exp(LPk - maxLP)
-    
-    #sum of the probas of the 2 corresponding matrices :
-    SP = cp.sum(Pk, axis = 0, keepdims = True)
-    ak = Pk/SP
-    
-    # update the parameters, this step is tricky as an approximation of a gaussian mixture by a simple gaussian
-    m_arr = cp.sum(ak[:,:,:,None] * m_arr_k, axis=0)
-    s2_arr = cp.sum((ak[:,:,:,None] * s2_arr_k), axis=0)
-    del ak
-    LP = maxLP + np.log(SP)
-    LP = LP[0]
+
+    # approximate the mixture of Gaussians by a single Gaussian with the same 2 first moments
+    m_arr, s2_arr, LP = fuse_gaussians(m_arr_k, s2_arr_k, LPk, 0)
     # cur_Bs = cur_Bs[:,:I, :-1]
     # np.mean(np.abs(m_arr0-m_arr1)) # to verify how far they are, I found a difference of 0.2nm for D = 0.1um2/s, LocErr=0.02um and 6 frames
     # np.mean(np.abs(s2_arr0-s2_arr1))
@@ -360,9 +508,9 @@ def fuse_tracks(m_arr, s2_arr, LP, cur_nb_Bs, nb_states = 2):
 
 def fuse_tracks_general(m_arr, s2_arr, LP, cur_Bs, cur_len, nb_Tracks, fuse_pos, nb_states = 2, nb_dims = 2):
     '''
-    The probabilities of the pairs of tracks must be added
-    I chose to define the updated m_arr and s2_arr as the weighted average (of the variance for s2_arr)
-    but other methods may be better
+    The probabilities of the fused branches are summed and their Gaussians are
+    reduced to a single Gaussian carrying the 2 first moments of their mixture
+    (see fuse_gaussians).
     As I must divid by a sum of exponentials which can be equal to zero because of underflow
     I correct the values in the exponetial to keep the maximal exp value at 0
     '''
@@ -395,34 +543,77 @@ def fuse_tracks_general(m_arr, s2_arr, LP, cur_Bs, cur_len, nb_Tracks, fuse_pos,
     rm_axis = np.where(np.array(remove_axis))
     rm_axis = tuple(rm_axis[0]+1) # we add 1 as the first dim of our arrays is for the track ID
     
-    new_LP = LP.reshape([nb_Tracks] + dims)
-    max_LP = new_LP.max(axis = rm_axis,keepdims = True)
-    norm_weights = np.exp(new_LP - max_LP)
-    Sum_weights = np.sum(norm_weights, axis = rm_axis, keepdims = True)
-    weights = norm_weights / Sum_weights
-    weights = weights.reshape(weights.shape + (1,)) # add a dim for weights to fit the shape of m_arr and s2_arr
-
+    LP = LP.reshape([nb_Tracks] + dims)
     m_arr = m_arr.reshape([nb_Tracks] + dims + [nb_dims])
     s2_arr = s2_arr.reshape([s2_arr.shape[0]] + dims + [s2_arr.shape[-1]])
-    new_m_arr = np.sum(weights * m_arr, axis = rm_axis)
-    new_s2_arr = np.sum(weights * s2_arr , axis = rm_axis)
-    
-    LP = LP.reshape([nb_Tracks] + dims)
-    new_LP = np.log(np.sum(np.exp(LP-max_LP), axis = rm_axis)) + np.squeeze(max_LP, axis = rm_axis)
+
+    # approximate the mixture of Gaussians by a single Gaussian with the same 2 first moments
+    new_m_arr, new_s2_arr, new_LP = fuse_gaussians(m_arr, s2_arr, LP, rm_axis)
 
     new_cur_Bs = cur_Bs.reshape([1] + dims + [cur_len])
     for i, axis in enumerate(rm_axis):
         new_cur_Bs = np.take(new_cur_Bs, indices = 0, axis = axis -  i)
     new_cur_Bs = np.delete(new_cur_Bs , tuple(fuse_pos), axis =  -1)
-    new_cur_Bs = new_cur_Bs.reshape((1, np.product(new_cur_Bs.shape[1:-1]), cur_len - len(fuse_pos)))
+    new_cur_Bs = new_cur_Bs.reshape((1, np.prod(new_cur_Bs.shape[1:-1]), cur_len - len(fuse_pos)))
 
-    new_m_arr = new_m_arr.reshape((nb_Tracks, np.product(new_m_arr.shape[1:-1]), nb_dims))
-    new_s2_arr = new_s2_arr.reshape((new_s2_arr.shape[0], np.product(new_s2_arr.shape[1:-1]), new_s2_arr.shape[-1]))
-    new_LP = new_LP.reshape((nb_Tracks, np.product(new_LP.shape[1:])))
+    new_m_arr = new_m_arr.reshape((nb_Tracks, np.prod(new_m_arr.shape[1:-1]), nb_dims))
+    new_s2_arr = new_s2_arr.reshape((new_s2_arr.shape[0], np.prod(new_s2_arr.shape[1:-1]), new_s2_arr.shape[-1]))
+    new_LP = new_LP.reshape((nb_Tracks, np.prod(new_LP.shape[1:])))
     
     return new_m_arr, new_s2_arr, new_LP, new_cur_Bs
 
 #Cs, LocErr, ds, Fs, TrMat,pBL,isBL, cell_dims, nb_substeps, frame_len, min_len, threshold, max_nb_states = args_prod[0]
+
+def recurrence_step(Ci, l2, cur_d2s, m_arr, s2_arr, LP, LT, LL, rep):
+    '''
+    One step of the sequences recursion: replicate the carried Gaussians over the
+    `rep` possible new states, fold the observation in (log_integrale_dif) and
+    accumulate the transition, integration and survival log terms.
+
+    Branch b of the output descends from branch b // rep of the input, which is
+    what np.repeat(..., rep, axis = 1) produces.
+    '''
+    if numba_active():
+        nb_Tracks = m_arr.shape[0]
+        nb_out = m_arr.shape[1] * rep
+        nb_dims = m_arr.shape[2]
+        new_m = np.empty((nb_Tracks, nb_out, nb_dims))
+        new_s2 = np.empty((nb_Tracks, nb_out, nb_dims))
+        new_LP = np.empty((nb_Tracks, nb_out))
+        LT_flat = np.ascontiguousarray(np.broadcast_to(LT, (1, nb_out))[0], dtype = float)
+        LL_flat = np.ascontiguousarray(np.broadcast_to(LL, (1, nb_out))[0], dtype = float) if np.ndim(LL) else np.zeros(nb_out)
+        _numba_kernels.step_kernel(np.ascontiguousarray(Ci[:,0], dtype = float),
+                                   np.ascontiguousarray(l2[:,0], dtype = float),
+                                   np.ascontiguousarray(cur_d2s, dtype = float),
+                                   np.ascontiguousarray(m_arr, dtype = float),
+                                   np.ascontiguousarray(s2_arr, dtype = float),
+                                   np.ascontiguousarray(LP, dtype = float),
+                                   LT_flat, LL_flat, rep, new_m, new_s2, new_LP)
+        return new_m, new_s2, new_LP
+
+    m_arr = cp.repeat(m_arr, rep, axis = 1)
+    s2_arr = cp.repeat(s2_arr, rep, axis = 1)
+    LP = cp.repeat(LP, rep, axis = 1)
+    m_arr, s2_arr, LC = log_integrale_dif(Ci, l2, cur_d2s, m_arr, s2_arr)
+    return m_arr, s2_arr, LP + LT + LC + LL
+
+def final_integration(C0, l2, m_arr, s2_arr, LP, LL):
+    '''
+    The last observation of a track: it is folded in without a further
+    prediction step, and the end of track term is added.
+    '''
+    if numba_active():
+        LP = np.ascontiguousarray(LP, dtype = float)
+        LL_arr = np.ascontiguousarray(np.atleast_2d(LL) + np.zeros(LP.shape[1]), dtype = float)
+        _numba_kernels.final_kernel(np.ascontiguousarray(C0[:,0], dtype = float),
+                                    np.ascontiguousarray(l2[:,0], dtype = float),
+                                    np.ascontiguousarray(m_arr, dtype = float),
+                                    np.ascontiguousarray(s2_arr, dtype = float),
+                                    LP, LL_arr)
+        return LP
+    new_s2_arr = cp.array(s2_arr + l2)
+    log_integrated_term = cp.sum(-0.5*cp.log(2*np.pi*new_s2_arr) - (C0 - m_arr)**2/(2*new_s2_arr), axis = 2)
+    return LP + log_integrated_term + LL
 
 def P_Cs_inter_bound_stats_th(Cs, LocErr, ds, Fs, TrMat, pBL=0.1, isBL = 1, cell_dims = [0.5], nb_substeps=1, frame_len = 6, do_preds = 0, min_len = 3, threshold = 0.2, max_nb_states = 120):
     '''
@@ -554,21 +745,17 @@ def P_Cs_inter_bound_stats_th(Cs, LocErr, ds, Fs, TrMat, pBL=0.1, isBL = 1, cell
         cur_d2s = cur_d2s[:,:,None]
         LT = get_Ts_from_Bs(cur_states, TrMat)
         
-        # repeat the previous matrix to account for the states variations due to the new position
-        m_arr = cp.repeat(m_arr, nb_states**nb_substeps , axis = 1)
-        s2_arr = cp.repeat(s2_arr, nb_states**nb_substeps, axis = 1)
-        LP = cp.repeat(LP, nb_states**nb_substeps, axis = 1)
-        # inject the next position to get the associated m_arr, s2_arr and Constant describing the integral of 3 normal laws :
-        
-        m_arr, s2_arr, LC = log_integrale_dif(Cs[:,:,nb_locs-current_step], LocErr2[:,:,min(LocErr_index,nb_locs-current_step)], cur_d2s, m_arr, s2_arr)
-        
         if current_step >= min_len:
             LL = Lp_stay[np.argmax(np.all(cur_states[:,None,:,:-1] == sub_Bs[:,:,None],-1),1)] # pick the right proba of staying according to the current states
         else:
             LL = 0
-        
-        LP += LT + LC + LL # current (log) constants associated with each track and sequences of states
-        del LT, LC
+
+        # replicate over the new states, inject the next position and accumulate
+        m_arr, s2_arr, LP = recurrence_step(Cs[:,:,nb_locs-current_step],
+                                            LocErr2[:,:,min(LocErr_index,nb_locs-current_step)],
+                                            cur_d2s, m_arr, s2_arr, LP, LT, LL,
+                                            nb_states**nb_substeps)
+        del LT
         
         if nb_substeps > 1 and 0:
             cur_len = cur_Bs.shape[-1]
@@ -631,13 +818,9 @@ def P_Cs_inter_bound_stats_th(Cs, LocErr, ds, Fs, TrMat, pBL=0.1, isBL = 1, cell
         LL = cp.log(pBL + (1-end_p_stay) - pBL * (1-end_p_stay)) + LT
         cur_Bs_cat = cur_Bs_cat[:,:,1:]
 
-    new_s2_arr = cp.array((s2_arr + LocErr2[:,:, min(LocErr_index, nb_locs-current_step)]))
-    log_integrated_term = cp.sum(-0.5*cp.log(2*np.pi*new_s2_arr) - (Cs[:,:,0] - m_arr)**2/(2*new_s2_arr),axis=2)
-    #LF = cp.log(Fs[cur_Bs[:,:,0].astype(int)]) # Log proba of starting in a given state (fractions)
-    #LF = cp.log(0.5)
-    # cp.mean(cp.log(Fs[cur_Bs[:,:,:].astype(int)]), 2) # Log proba of starting in a given state (fractions)
-    LP += log_integrated_term + LL
-    
+    LP = final_integration(Cs[:,:,0], LocErr2[:,:, min(LocErr_index, nb_locs-current_step)],
+                           m_arr, s2_arr, LP, LL)
+
     pred_LP = LP
     if np.max(LP)>600: # avoid overflow of exponentials, (drawback: mechanically also reduces the weights of longest tracks)
         pred_LP = LP - (np.max(LP)-600)
@@ -649,16 +832,74 @@ def P_Cs_inter_bound_stats_th(Cs, LocErr, ds, Fs, TrMat, pBL=0.1, isBL = 1, cell
         preds = preds[:,::-1]
     return LP, cur_Bs_cat, preds
 
+def fuse_tracks_th_numba(m_arr, s2_arr, LP, cur_Bs, cur_Bs_cat, nb_Tracks, nb_states = 2, nb_dims = 2, do_preds = 1, threshold = 0.2, frame_len = 6):
+    '''
+    The numba twin of fuse_tracks_th: same grouping rule, same moment matched
+    fusion, same outputs. The grouping is O(nb_branches**2) and the fusion runs
+    over every track, which is why both are worth compiling.
+    '''
+    test_chunks = 30
+    m_arr = np.ascontiguousarray(m_arr, dtype = float)
+    s2_arr = np.ascontiguousarray(s2_arr, dtype = float)
+    LP = np.ascontiguousarray(LP, dtype = float)
+    cur_Bs_cat = np.ascontiguousarray(cur_Bs_cat, dtype = float)
+
+    hist_len = cur_Bs_cat.shape[2]
+    nF = min(frame_len, hist_len)
+    tc_m = min(test_chunks, m_arr.shape[0])
+    tc_s = min(test_chunks, s2_arr.shape[0])
+    tc_c = min(test_chunks, cur_Bs_cat.shape[0])
+
+    s_arr = s2_arr**0.5
+    cat_arg = np.ascontiguousarray(np.argmax(cur_Bs_cat[:tc_c, :, :nF], -1).astype(np.int64))
+    state0 = np.ascontiguousarray(np.argmax(cur_Bs_cat[0, :, 0], 1).astype(np.int64))
+
+    group_of, nb_subgroups = _numba_kernels.group_kernel(
+        np.ascontiguousarray(m_arr[:tc_m]), np.ascontiguousarray(s_arr[:tc_s]),
+        cat_arg, state0, hist_len, frame_len, threshold)
+    if np.any(group_of < 0):
+        raise ValueError('problem with grouping: some branches were left out')
+
+    member = np.ascontiguousarray(np.argsort(group_of, kind = 'stable').astype(np.int64))
+    gptr = np.zeros(nb_subgroups + 1, dtype = np.int64)
+    gptr[1:] = np.cumsum(np.bincount(group_of, minlength = nb_subgroups))
+
+    new_m_arr = np.zeros((nb_Tracks, nb_subgroups, m_arr.shape[2]))
+    new_s2_arr = np.zeros((nb_Tracks, nb_subgroups, fused_variance_shape(m_arr, s2_arr)))
+    new_LP = np.zeros((nb_Tracks, nb_subgroups))
+    _numba_kernels.fuse_kernel(m_arr, s2_arr, LP, member, gptr,
+                               FUSION_MOMENT_MATCHING, FUSION_ISOTROPIC_VARIANCE,
+                               new_m_arr, new_s2_arr, new_LP)
+
+    if not do_preds:
+        cur_Bs_cat = np.ascontiguousarray(cur_Bs_cat[:, :, :frame_len])
+    nb_cat_rows = nb_Tracks if do_preds else 1   # see the note in fuse_tracks_th
+    new_cur_Bs_cat = np.zeros((nb_cat_rows, nb_subgroups, cur_Bs_cat.shape[2], nb_states))
+    if do_preds:
+        _numba_kernels.fuse_cat_kernel(cur_Bs_cat, LP, member, gptr, new_cur_Bs_cat)
+    else:
+        _numba_kernels.mean_cat_kernel(cur_Bs_cat, member, gptr,
+                                       min(test_chunks, cur_Bs_cat.shape[0]), new_cur_Bs_cat)
+
+    new_cur_Bs = np.empty((1, nb_subgroups, 1), dtype = int)
+    for g in range(nb_subgroups):
+        new_cur_Bs[0, g, 0] = cur_Bs[0, member[gptr[g]], 0]
+
+    return new_m_arr, new_s2_arr, new_LP, new_cur_Bs, new_cur_Bs_cat
+
 def fuse_tracks_th(m_arr, s2_arr, LP, cur_Bs, cur_Bs_cat, nb_Tracks, nb_states = 2, nb_dims = 2, do_preds = 1, threshold = 0.2, frame_len = 6):
     '''
-    The probabilities of the pairs of tracks must be added
-    I chose to define the updated m_arr and s2_arr as the weighted average (of the variance for s2_arr)
-    but other methods may be better
+    The probabilities of the fused branches are summed and their Gaussians are
+    reduced to a single Gaussian carrying the 2 first moments of their mixture
+    (see fuse_gaussians).
     As I must divid by a sum of exponentials which can be equal to zero because of underflow
     I correct the values in the exponetial to keep the maximal exp value at 0
     '''
+    if numba_active():
+        return fuse_tracks_th_numba(m_arr, s2_arr, LP, cur_Bs, cur_Bs_cat, nb_Tracks,
+                                    nb_states, nb_dims, do_preds, threshold, frame_len)
+
     # cut the matrixes so the resulting matrices only vary for their last state
-    m_arr.shape
     s_arr = s2_arr**0.5
     
     groups = []
@@ -693,6 +934,10 @@ def fuse_tracks_th(m_arr, s2_arr, LP, cur_Bs, cur_Bs_cat, nb_Tracks, nb_states =
             args = np.where(m_mask_relative * s_mask_relative * cur_state_mask + state_mask)[0]
 
             args = args[np.isin(args, grouped_IDs) == False] # remove elements that already belongs to a group
+            if not np.isin(Bs_ID, args): # a branch always belongs to its own
+                # group: the tests above are strict, so at threshold = 0 -- the
+                # way to ask for no fusion -- it would fail its own test
+                args = np.sort(np.append(args, Bs_ID))
             
             groups.append(args)
             grouped_IDs = grouped_IDs + list(args)
@@ -714,10 +959,16 @@ def fuse_tracks_th(m_arr, s2_arr, LP, cur_Bs, cur_Bs_cat, nb_Tracks, nb_states =
     if not do_preds:
         cur_Bs_cat = cur_Bs_cat[:,:,:frame_len]
 
-    new_cur_Bs_cat = np.zeros((nb_Tracks, nb_subgroups, cur_Bs_cat.shape[2], nb_states), dtype = cur_Bs_cat.dtype)
+    # when the state predictions are not asked for, the histories only serve to
+    # decide which branches share a sequence of states and every track ends up
+    # with the same ones, so a single row is kept instead of nb_Tracks copies of
+    # it (that array is (nb_Tracks, nb_branches, frame_len, nb_states) and was
+    # being rebuilt at every step)
+    nb_cat_rows = nb_Tracks if do_preds else 1
+    new_cur_Bs_cat = np.zeros((nb_cat_rows, nb_subgroups, cur_Bs_cat.shape[2], nb_states), dtype = cur_Bs_cat.dtype)
     
     new_m_arr = np.zeros((nb_Tracks, nb_subgroups, m_arr.shape[2]),  dtype = m_arr.dtype)
-    new_s2_arr = np.zeros((nb_Tracks, nb_subgroups, s2_arr.shape[2]),  dtype = s2_arr.dtype)
+    new_s2_arr = np.zeros((nb_Tracks, nb_subgroups, fused_variance_shape(m_arr, s2_arr)),  dtype = s2_arr.dtype)
     new_LP = np.zeros((nb_Tracks, nb_subgroups),  dtype = LP.dtype)
     
     for Bs_ID, subgroup in enumerate(subgroups):
@@ -736,12 +987,300 @@ def fuse_tracks_th(m_arr, s2_arr, LP, cur_Bs, cur_Bs_cat, nb_Tracks, nb_states =
         else:
             new_cur_Bs_cat[:, Bs_ID] =  cur_Bs_cat[:, subgroup[0]]    
         
-        new_m_arr[:, Bs_ID] = np.sum(weights[:,:,None] * m_arr[:, subgroup, :], 1) / sum_weights
-        new_s2_arr[:, Bs_ID] = np.sum(weights[:,:,None] * s2_arr[:, subgroup, :], 1) / sum_weights
-        new_LP[:, Bs_ID] = np.log(np.sum(np.exp(LP[:, subgroup]-max_LP), axis = 1)) + np.squeeze(max_LP, axis = 1)
+        # approximate the mixture of Gaussians of the group by a single Gaussian with the same 2 first moments
+        new_m_arr[:, Bs_ID], new_s2_arr[:, Bs_ID], new_LP[:, Bs_ID] = fuse_gaussians(m_arr[:, subgroup, :], s2_arr[:, subgroup, :], LP[:, subgroup], 1)
         
     return new_m_arr, new_s2_arr, new_LP, new_cur_Bs, new_cur_Bs_cat
 
+
+"""
+The (segment age, current state) buffer, transposed from ExaTrack.
+
+The scheme above carries one hypothesis per *sequence of states* over the last
+`frame_len` frames: nb_states**frame_len of them, brought back down at every step
+by fuse_tracks_th, whose grouping is a python loop of cost O(nb_Bs**2) and whose
+outcome depends on the data. ExaTrack keeps instead a buffer of fixed size
+`frame_len * nb_states`, indexed by
+
+    (a, s) = (number of steps since the last transition, current state)
+
+the oldest slab meaning "a >= frame_len - 1". One step generates exactly
+`frame_len * nb_states**2` branches (every hypothesis times every next state) and
+folds them straight back into `frame_len * nb_states` hypotheses:
+
+    (a, s) --> (a+1, s)   staying: the age advances and nothing is fused, except
+                          in the oldest slab where a+1 is capped and the two
+                          oldest ages merge,
+    (a, s) --> (0, j)     transitioning: every source arriving in state j is fused
+                          into the single newborn (0, j).
+
+Why (age, state) rather than the sequence of states: what the carried Gaussian
+depends on is how much diffusion has accumulated since the particle last changed
+state, and that is exactly (a, s). What is given up is the identity of the states
+before the current segment, and the exact age once it exceeds frame_len - 1.
+
+Per step and per track, against the scheme above:
+
+    hypotheses  frame_len * nb_states       instead of  nb_states ** frame_len
+    branches    frame_len * nb_states**2    instead of  nb_states ** (frame_len+1)
+    grouping    none, the layout is static  instead of  a python loop over pairs
+
+so the cost no longer depends on the data and the duration of a fit becomes
+predictable. Every fusion here is the moment matched one (fuse_gaussians), which
+matters more than in the scheme above because the newborn fusion pools
+hypotheses whose means are genuinely far apart.
+"""
+
+def kalman_fold(Ci, l2, m_arr, s2_arr):
+    '''
+    Fold one observation into the carried Gaussian, one scalar dimension at a time.
+
+    The carried message is the predictive N(r ; m_arr, s2_arr) of the current true
+    position. Observing Ci with variance l2 contributes the evidence
+    N(Ci ; m_arr, s2_arr + l2) and leaves the posterior N(r ; m_post, s2_post) :
+
+        tot     = s2_arr + l2
+        K       = sum_dims [ -0.5*log(2 pi tot) - (Ci - m_arr)**2 / (2 tot) ]
+        m_post  = (m_arr*l2 + Ci*s2_arr) / tot
+        s2_post = s2_arr*l2 / tot
+
+    This is log_integrale_dif split in two: it stops before adding the diffusion
+    variance of the coming step, because that part depends on the next state while
+    this part does not.
+    '''
+    tot = s2_arr + l2
+    K = cp.sum(-0.5*cp.log(2*np.pi*tot) - (Ci - m_arr)**2 / (2*tot), axis = -1)
+    m_post = (m_arr*l2 + Ci*s2_arr) / tot
+    s2_post = s2_arr*l2 / tot
+    return m_post, s2_post, K
+
+def fuse_with_history(m_arr, s2_arr, LP, hist, axis):
+    '''
+    fuse_gaussians, plus the same weighted average of the state histories that the
+    state predictions are read from.
+    '''
+    new_m, new_s2, new_LP = fuse_gaussians(m_arr, s2_arr, LP, axis)
+    if hist is None:
+        return new_m, new_s2, new_LP, None
+    max_LP = cp.max(LP, axis = axis, keepdims = True)
+    weights = cp.exp(LP - max_LP)
+    weights = weights / cp.sum(weights, axis = axis, keepdims = True)
+    return new_m, new_s2, new_LP, cp.sum(weights[..., None, None] * hist, axis = axis)
+
+def new_ages_carry(nb_Tracks, frame_len, nb_states, nb_dims, hist_len, want_cat):
+    '''
+    Fresh carry buffers for the (age, state) recursion: the message a segment
+    hands to the next one. `nact` is the number of age slabs opened so far.
+    '''
+    cap = max(int(frame_len), 2) * nb_states
+    return dict(LP = np.zeros((nb_Tracks, cap)),
+                m = np.zeros((nb_Tracks, cap * nb_dims)),
+                s2 = np.zeros((nb_Tracks, cap * nb_dims)),
+                cat = np.zeros((nb_Tracks, cap * (hist_len if want_cat else 1) * nb_states)),
+                nact = np.ones(nb_Tracks, dtype = np.int64))
+
+def ages_kernel_call(Cs, LocErr2, log_TrMat, log_Fs, pair_d2, Lp_stay, end_LL,
+                     frame_len, min_len, nsteps, isfirst, islast, abs_start,
+                     carry, hist_len, want_cat, nb_states):
+    '''
+    Run one segment of the (age, state) recursion through the numba kernel.
+
+    `carry` is the dict from new_ages_carry, or None for a self-contained call;
+    it is updated in place for the tracks that do not end in this segment.
+    Returns (out_LP, out_cat); out_LP is only meaningful where islast != 0.
+    '''
+    Cs = np.ascontiguousarray(Cs, dtype = float)
+    nb_Tracks, nb_dims = Cs.shape[0], Cs.shape[2]
+    if carry is None:
+        carry = new_ages_carry(nb_Tracks, frame_len, nb_states, nb_dims, hist_len, want_cat)
+    out_LP = np.zeros(nb_Tracks)
+    out_cat = np.zeros((nb_Tracks, hist_len if want_cat else 1, nb_states))
+    _numba_kernels.ages_kernel(
+        Cs,
+        np.ascontiguousarray(LocErr2, dtype = float),
+        np.ascontiguousarray(log_TrMat, dtype = float),
+        np.ascontiguousarray(log_Fs, dtype = float),
+        np.ascontiguousarray(pair_d2, dtype = float),
+        np.ascontiguousarray(Lp_stay, dtype = float),
+        np.ascontiguousarray(end_LL, dtype = float),
+        max(int(frame_len), 2), int(min_len),
+        FUSION_MOMENT_MATCHING, FUSION_ISOTROPIC_VARIANCE, bool(want_cat),
+        np.ascontiguousarray(nsteps, dtype = np.int64),
+        np.ascontiguousarray(isfirst, dtype = np.int64),
+        np.ascontiguousarray(islast, dtype = np.int64),
+        np.ascontiguousarray(abs_start, dtype = np.int64),
+        carry['LP'], carry['m'], carry['s2'], carry['cat'], carry['nact'],
+        out_LP, out_cat)
+    return out_LP, out_cat
+
+def P_Cs_inter_bound_stats_ages(Cs, LocErr, ds, Fs, TrMat, pBL = 0.1, isBL = 1, cell_dims = [0.5], nb_substeps = 1, frame_len = 6, do_preds = 0, min_len = 3, threshold = 0.2, max_nb_states = 120):
+    '''
+    Same model and same likelihood as P_Cs_inter_bound_stats_th, with the tree of
+    sequences of states replaced by the (segment age, current state) buffer
+    described above.
+
+    `threshold` and `max_nb_states` are accepted and ignored: this scheme has no
+    adaptive grouping, its buffer always holds frame_len*nb_states hypotheses.
+    `nb_substeps` must be 1 and `ds` must be a single diffusion length per state
+    (a time and track dependent `ds` is not supported yet).
+
+    Cs : dim 0 = track ID, dim 1 : peak positions through time, dim 2 : x, y (z)
+    '''
+    if nb_substeps != 1:
+        raise NotImplementedError('the (age, state) scheme only supports nb_substeps = 1')
+
+    nb_Tracks, nb_locs, nb_dims = Cs.shape
+    nb_states = TrMat.shape[0]
+    if nb_states < 2:
+        raise ValueError('the (age, state) scheme needs at least 2 states')
+    L = max(int(frame_len), 2)
+    if nb_locs < 2:
+        raise ValueError('minimal track length = 2, here track length = %s'%nb_locs)
+
+    Cs = cp.array(np.asarray(Cs).astype('float64'))
+    LocErr2 = cp.array(np.asarray(LocErr).astype('float64'))**2   # (nb_tracks|1, nb_locs|1, nb_dims|1)
+    single_LocErr = LocErr2.shape[1] == 1
+    if not single_LocErr and LocErr2.shape[1] != nb_locs:
+        raise ValueError("Localization error is not specified correctly, see P_Cs_inter_bound_stats_th")
+
+    ds = np.asarray(ds)
+    if ds.ndim != 1:
+        raise NotImplementedError('the (age, state) scheme only supports one diffusion length per state')
+    d2s = cp.array(ds**2)[None, None]                             # (1, 1, nb_states)
+    Fs = cp.array(Fs)
+    log_TrMat = cp.log(cp.array(TrMat))                           # [current state, next state]
+
+    # probability to stay in the field of view and not to bleach, one per state
+    p_stay = np.ones(nb_states)
+    for cell_len in cell_dims:
+        xs = np.linspace(0+cell_len/2000, cell_len-cell_len/2000, 1000)
+        p_stay = p_stay * np.mean(scipy.stats.norm.cdf((cell_len-xs[:,None])/(ds+1e-200)) - scipy.stats.norm.cdf(-xs[:,None]/(ds+1e-200)), 0)
+    p_stay = cp.array(p_stay)
+    Lp_stay = cp.log(p_stay * (1-pBL))
+
+    stay = np.arange(nb_states)
+    sources = np.array([[s for s in range(nb_states) if s != j] for j in range(nb_states)]) # (nb_states, nb_states-1)
+    arrival = np.arange(nb_states)[:, None]
+    pair_d2 = (d2s[:,:,:,None] + d2s[:,:,None,:]) / 2             # (1, 1, from, to), transition in the middle of the step
+
+    def l2_at(t):
+        return LocErr2[:, 0 if single_LocErr else t][:, None]     # (nb_tracks|1, 1, nb_dims|1)
+
+    def advance(m_arr, s2_arr, LP, hist, K, LL, n_act, new_state_time):
+        '''
+        One transition of the buffer: branch every hypothesis over the nb_states
+        possible next states, then fold the branches back onto their (age, state)
+        target. K is the evidence of the observation folded at this step, None for
+        the very first transition which folds none.
+        '''
+        S = nb_states
+        T = LP.shape[0]
+        nd = s2_arr.shape[-1]
+
+        LPb = LP.reshape(T, n_act, S)[:,:,:,None] + log_TrMat[None,None] + LL
+        if K is not None:
+            LPb = LPb + K.reshape(T, n_act, S)[:,:,:,None]
+        s2b = s2_arr.reshape(T, n_act, S, 1, nd) + pair_d2[..., None]
+        mb = cp.broadcast_to(m_arr.reshape(T, n_act, S, 1, nd), (T, n_act, S, S, nd))
+        histb = hist.reshape((T, n_act, S) + hist.shape[2:]) if hist is not None else None
+
+        n_new = min(n_act + 1, L)
+        new_LP = cp.empty((T, n_new, S))
+        new_m = cp.empty((T, n_new, S, nd))
+        new_s2 = cp.empty((T, n_new, S, nd))
+        new_hist = cp.empty((T, n_new, S) + hist.shape[2:]) if hist is not None else None
+
+        # newborns : every source arriving in state j is fused into (age 0, j)
+        take = (slice(None), slice(None), sources, arrival)
+        f_LP = LPb[take].transpose(0,2,1,3).reshape(T, S, n_act*(S-1))
+        f_m = mb[take].transpose(0,2,1,3,4).reshape(T, S, n_act*(S-1), nd)
+        f_s2 = s2b[take].transpose(0,2,1,3,4).reshape(T, S, n_act*(S-1), nd)
+        f_h = None
+        if hist is not None:
+            f_h = histb[:,:,sources].transpose(0,2,1,3,4,5).reshape((T, S, n_act*(S-1)) + hist.shape[2:])
+        new_m[:,0], new_s2[:,0], new_LP[:,0], fused_h = fuse_with_history(f_m, f_s2, f_LP, f_h, 2)
+        if hist is not None:
+            new_hist[:,0] = fused_h
+
+        # stays : the age advances; when the buffer is full the 2 oldest slabs merge
+        s_LP = LPb[:,:,stay,stay]
+        s_m = mb[:,:,stay,stay]
+        s_s2 = s2b[:,:,stay,stay]
+        if n_act < L:
+            new_LP[:,1:], new_m[:,1:], new_s2[:,1:] = s_LP, s_m, s_s2
+            if hist is not None:
+                new_hist[:,1:] = histb
+        else:
+            new_LP[:,1:L-1], new_m[:,1:L-1], new_s2[:,1:L-1] = s_LP[:,:L-2], s_m[:,:L-2], s_s2[:,:L-2]
+            if hist is not None:
+                new_hist[:,1:L-1] = histb[:,:L-2]
+            old = slice(L-2, L)
+            new_m[:,L-1], new_s2[:,L-1], new_LP[:,L-1], fused_h = fuse_with_history(
+                s_m[:,old], s_s2[:,old], s_LP[:,old],
+                histb[:,old] if hist is not None else None, 1)
+            if hist is not None:
+                new_hist[:,L-1] = fused_h
+
+        if hist is not None: # the state reached at this step is known for every target
+            new_hist[:,:,:,new_state_time] = 0
+            for s in range(S):
+                new_hist[:,:,s,new_state_time,s] = 1
+
+        return (new_m.reshape(T, n_new*S, nd), new_s2.reshape(T, n_new*S, nd),
+                new_LP.reshape(T, n_new*S),
+                new_hist.reshape((T, n_new*S) + hist.shape[2:]) if hist is not None else None,
+                n_new)
+
+    if numba_active():
+        # the whole recursion is one kernel call: its state per track is a few tens
+        # of doubles, so it stays in L1 and no temporary is ever written out
+        end_LL = np.log(pBL + (1-p_stay) - pBL * (1-p_stay))
+        # the whole data set as a single segment: every track starts here
+        # (isfirst = 1) and ends here (islast = 2 when the track stops, 1 when it
+        # runs to the end of the movie), so the carry buffers stay unused
+        nsteps = np.full(nb_Tracks, nb_locs - 1, dtype = np.int64)
+        out_LP, out_cat = ages_kernel_call(
+            asnumpy(Cs), asnumpy(LocErr2), asnumpy(log_TrMat), asnumpy(cp.log(Fs)),
+            asnumpy(pair_d2[0, 0]), asnumpy(Lp_stay), asnumpy(end_LL), L, min_len,
+            nsteps, np.ones(nb_Tracks, dtype = np.int64),
+            np.full(nb_Tracks, 2 if isBL else 1, dtype = np.int64),
+            np.zeros(nb_Tracks, dtype = np.int64),
+            None, nb_locs if do_preds else 1, bool(do_preds), nb_states)
+        return out_LP[:, None], None, (out_cat if do_preds else [])
+
+    # time 0 : one hypothesis per state, carrying the posterior of r_0 given c_0
+    n_act = 1
+    m_arr = cp.repeat(Cs[:,0][:,None], nb_states, 1)
+    s2_arr = cp.zeros((nb_Tracks, nb_states, nb_dims)) + l2_at(0)
+    LP = cp.repeat(cp.log(Fs)[None], nb_Tracks, 0)
+    hist = None
+    if do_preds:
+        hist = cp.zeros((nb_Tracks, nb_states, nb_locs, nb_states))
+        for s in range(nb_states):
+            hist[:, s, 0, s] = 1
+
+    # first transition : no observation is folded, it only opens the age 0 and 1 slabs
+    m_arr, s2_arr, LP, hist, n_act = advance(m_arr, s2_arr, LP, hist, None, 0., n_act, 1)
+
+    # times 1 .. nb_locs-2 : fold the observation, then transition
+    for tau in range(1, nb_locs-1):
+        m_arr, s2_arr, K = kalman_fold(Cs[:,tau][:,None], l2_at(tau), m_arr, s2_arr)
+        LL = Lp_stay[None,None,None] if tau + 1 >= min_len else 0.
+        m_arr, s2_arr, LP, hist, n_act = advance(m_arr, s2_arr, LP, hist, K, LL, n_act, tau+1)
+
+    # last observation, then the end of track term
+    LP = LP + kalman_fold(Cs[:,nb_locs-1][:,None], l2_at(nb_locs-1), m_arr, s2_arr)[2]
+    if isBL:
+        end_LL = cp.log(pBL + (1-p_stay) - pBL * (1-p_stay))[None]     # indexed by the state reached
+        cur_states = np.tile(np.arange(nb_states), n_act)              # component index = age*nb_states + state
+        LP = LP + cp.log(cp.sum(cp.exp(log_TrMat[cur_states] + end_LL), axis = -1))[None]
+
+    preds = []
+    if do_preds:
+        weights = cp.exp(LP - cp.max(LP, axis = 1, keepdims = True))
+        weights = weights / cp.sum(weights, axis = 1, keepdims = True)
+        preds = asnumpy(cp.sum(weights[:,:,None,None] * hist, axis = 1))
+    return LP, hist, preds
 
 def get_all_Bs(nb_Cs, nb_states):
     '''
@@ -766,7 +1305,7 @@ def get_Ts_from_Bs(all_Bs, TrMat):
         LT += cp.log(TrMat[all_Bs[:,:,k], all_Bs[:,:,k+1]])
     return LT
 
-def Proba_Cs(Cs, LocErr, ds, Fs, TrMat, pBL, isBL, cell_dims, nb_substeps, frame_len, min_len, threshold, max_nb_states):
+def Proba_Cs(Cs, LocErr, ds, Fs, TrMat, pBL, isBL, cell_dims, nb_substeps, frame_len, min_len, threshold, max_nb_states, sequence_scheme = 'sequences'):
     '''
     inputs the observed localizations and determine the probability of 
     observing these data knowing the localization error, D the diffusion coef,
@@ -775,7 +1314,8 @@ def Proba_Cs(Cs, LocErr, ds, Fs, TrMat, pBL, isBL, cell_dims, nb_substeps, frame
     over all Bs to get the proba of Cs (knowing the initial position c0)
     '''
     
-    LP_CB, _, _  = P_Cs_inter_bound_stats_th(Cs, LocErr, ds, Fs, TrMat, pBL,isBL,cell_dims, nb_substeps, frame_len, do_preds = 0, min_len = min_len, threshold = threshold, max_nb_states = max_nb_states)
+    kernel = get_sequence_kernel(sequence_scheme)
+    LP_CB, _, _  = kernel(Cs, LocErr, ds, Fs, TrMat, pBL,isBL,cell_dims, nb_substeps, frame_len, do_preds = 0, min_len = min_len, threshold = threshold, max_nb_states = max_nb_states)
     np.sum(LP_CB)
     # calculates P(C) the sum of P(C inter B) for each track
     max_LP = np.max(LP_CB, axis = 1, keepdims = True)
@@ -786,8 +1326,333 @@ def Proba_Cs(Cs, LocErr, ds, Fs, TrMat, pBL, isBL, cell_dims, nb_substeps, frame
     LP_C = np.log(P_C) + max_LP # back to log proba of C without overflow due to exponential
     return LP_C
 
+def get_sequence_kernel(sequence_scheme):
+    '''
+    'sequences' : one hypothesis per sequence of states over the last frame_len
+                  frames, adaptively grouped (P_Cs_inter_bound_stats_th).
+    'ages'      : one hypothesis per (segment age, current state), a fixed buffer
+                  of frame_len*nb_states (P_Cs_inter_bound_stats_ages).
+    '''
+    if sequence_scheme == 'sequences':
+        return P_Cs_inter_bound_stats_th
+    elif sequence_scheme == 'ages':
+        return P_Cs_inter_bound_stats_ages
+    raise ValueError("sequence_scheme must be 'sequences' or 'ages', got %s"%repr(sequence_scheme))
+
+def sequences_batch(Cs, track_lens, LocErr, ds, Fs, TrMat, pBL, max_len, cell_dims,
+                    frame_len, do_preds, min_len, threshold, max_nb_states):
+    '''
+    One batch of the sequences recursion holding tracks of several lengths.
+
+    Cs         : (nb_tracks, longest, nb_dims), chronological, rows sorted by
+                 DECREASING track length.
+    track_lens : (nb_tracks,) decreasing, the number of points of each track.
+    LocErr     : (nb_tracks|1, longest|1, nb_dims|1) localization error, squared
+                 here as P_Cs_inter_bound_stats_th does.
+    max_len    : the length at or above which a track has not ended, i.e.
+                 ExTrack's isBL = 0 case.
+
+    A track leaves the batch the moment its own recursion is over, and it leaves
+    *before* the fusion of that step -- which is what `if current_step <
+    nb_locs-1` does in the per length version: the last step of a track is never
+    fused. Because the rows are sorted, the survivors are always a prefix and
+    leaving is a slice.
+
+    Unlike the (age, state) scheme, this one shares a single *dynamic* set of
+    branches across the batch, so the result is only identical to the per length
+    path when no fusion takes place -- `frame_len >= longest` together with a
+    threshold small enough that only a branch matches itself. Outside that regime
+    the grouping heuristic samples the batch's 30 first tracks and re-batching
+    changes which branches merge.
+
+    Returns (LP, preds), LP of shape (nb_tracks,) and preds of
+    (nb_tracks, longest, nb_states) when do_preds, in the input row order.
+    '''
+    nb_Tracks, longest, nb_dims = np.shape(Cs)
+    nb_states = TrMat.shape[0]
+    Cs = cp.array(np.asarray(Cs, dtype = 'float64'))[:, None]        # (n, 1, longest, dims)
+    LocErr2 = cp.array(np.asarray(LocErr, dtype = 'float64'))[:, None]**2
+    per_track_err = LocErr2.shape[0] > 1
+    per_frame_err = LocErr2.shape[2] > 1
+    track_lens = np.asarray(track_lens)
+
+    LP_out = np.zeros(nb_Tracks)
+    preds_out = np.zeros((nb_Tracks, longest, nb_states)) if do_preds else None
+
+    TrMatT = cp.array(np.asarray(TrMat).T)
+    ds = cp.array(ds)
+    Fs = cp.array(Fs)
+
+    cur_Bs = get_all_Bs(2, nb_states)[None]
+    cur_Bs_cat = (cur_Bs[:,:,:,None] == np.arange(nb_states)[None,None,None,:]).astype('float64')
+    cur_states = cur_Bs[:,:,0:2].astype(int)
+    LP = cp.repeat(get_Ts_from_Bs(cur_states, TrMatT) + cp.log(Fs[cur_states[:,:,-1]]),
+                   nb_Tracks, axis = 0)
+
+    cur_d2s = ds[cur_states]**2
+    cur_d2s = cp.mean((cur_d2s[:,:,1:] + cur_d2s[:,:,:-1]) / 2, axis = 2)[:,:,None]
+
+    sub_Bs = cur_Bs.copy()[:,:cur_Bs.shape[1]//nb_states,:1]
+    sub_ds = asnumpy((cp.mean(ds[sub_Bs]**2, axis = 2)**0.5).astype(float))
+    p_stay = np.ones(sub_ds.shape[-1])
+    for cell_len in cell_dims:
+        xs = np.linspace(0+cell_len/2000, cell_len-cell_len/2000, 1000)
+        p_stay = p_stay * cp.mean(scipy.stats.norm.cdf((cell_len-xs[:,None])/(sub_ds+1e-200)) - scipy.stats.norm.cdf(-xs[:,None]/(sub_ds+1e-200)), 0)
+    p_stay = cp.array(p_stay)
+    Lp_stay = cp.log(p_stay * (1-pBL))
+
+    rows = np.arange(nb_Tracks)
+
+    def obs(sel_rows, t):
+        return Cs[sel_rows][:, :, t]
+
+    def l2(sel_rows, t):
+        i = t if per_frame_err else 0
+        return LocErr2[sel_rows][:, :, i] if per_track_err else LocErr2[:, :, i]
+
+    m_arr, s2_arr = first_log_integrale_dif(obs(rows, 0), l2(rows, 0), cur_d2s)
+    m_arr = cp.repeat(m_arr, cur_Bs.shape[1], axis = 1)
+
+    def retire(sel, m_arr, s2_arr, LP, cur_Bs, cur_Bs_cat):
+        '''finish the tracks whose recursion ends at this step'''
+        T = int(track_lens[rows[sel[0]]])
+        isBL = 0 if T >= max_len else 1
+        m_sel = m_arr[sel]
+        s2_sel = s2_arr[sel] if s2_arr.shape[0] > 1 else s2_arr
+        LP_sel = LP[sel]
+        cat = cur_Bs_cat[sel] if cur_Bs_cat.shape[0] > 1 else cur_Bs_cat
+        if isBL:
+            ext_Bs = np.concatenate((np.mod(np.arange(cur_Bs.shape[1]*nb_states), nb_states)[None,:,None],
+                                     np.repeat(cur_Bs, nb_states, 1)), -1)
+            new_states = np.repeat(np.mod(np.arange(cat.shape[1]*nb_states, dtype = 'int8'), nb_states)[None,:,None,None] == np.arange(nb_states, dtype = 'int8')[None,None,None], cat.shape[0], 0).astype('int8')
+            cat = np.concatenate((new_states, np.repeat(cat, nb_states, 1)), -2)
+            ext_states = ext_Bs[:,:,0:2].astype(int)
+            LT = get_Ts_from_Bs(ext_states, TrMatT)
+            m_sel = cp.repeat(m_sel, nb_states, axis = 1)
+            s2_sel = cp.repeat(s2_sel, nb_states, axis = 1)
+            LP_sel = cp.repeat(LP_sel, nb_states, axis = 1)
+            end_p_stay = p_stay[ext_states[:,None:,:-1]][:,:,0]
+            LL_end = cp.log(pBL + (1-end_p_stay) - pBL * (1-end_p_stay)) + LT
+            cat = cat[:,:,1:]
+        else:
+            LL_end = 0
+
+        LP_sel = final_integration(obs(rows[sel], T-1), l2(rows[sel], T-1),
+                                   m_sel, s2_sel, LP_sel, LL_end)
+        mx = LP_sel.max(1)
+        LP_out[rows[sel]] = mx + np.log(np.exp(LP_sel - mx[:,None]).sum(1))
+        if do_preds:
+            pred_LP = LP_sel
+            if np.max(LP_sel) > 600:
+                pred_LP = LP_sel - (np.max(LP_sel)-600)
+            P = np.exp(pred_LP)
+            sum_P = np.sum(P, axis = 1, keepdims = True)[:,:,None]
+            pr = np.sum(P[:,:,None,None]*cat, axis = 1) / sum_P
+            preds_out[np.ix_(rows[sel], np.arange(T))] = pr[:, ::-1]
+
+    def shrink(cut, m_arr, s2_arr, LP, cur_Bs_cat):
+        keep = np.where(track_lens[rows] > cut)[0]
+        return (rows[keep], m_arr[keep],
+                s2_arr[keep] if s2_arr.shape[0] > 1 else s2_arr,
+                LP[keep],
+                cur_Bs_cat[keep] if cur_Bs_cat.shape[0] > 1 else cur_Bs_cat)
+
+    # tracks of 2 points never enter the loop, exactly as `nb_locs - 1 < 2` skips it
+    if np.any(track_lens[rows] == 2):
+        retire(np.where(track_lens[rows] == 2)[0], m_arr, s2_arr, LP, cur_Bs, cur_Bs_cat)
+        rows, m_arr, s2_arr, LP, cur_Bs_cat = shrink(2, m_arr, s2_arr, LP, cur_Bs_cat)
+
+    current_step = 2
+    while current_step <= longest - 1 and len(rows):
+        cur_Bs = np.concatenate((np.mod(np.arange(cur_Bs.shape[1]*nb_states), nb_states)[None,:,None],
+                                 np.repeat(cur_Bs, nb_states, 1)), -1)
+        new_states = np.repeat(np.mod(np.arange(cur_Bs_cat.shape[1]*nb_states, dtype = 'int8'), nb_states)[None,:,None,None] == np.arange(nb_states, dtype = 'int8')[None,None,None], cur_Bs_cat.shape[0], 0).astype('int8')
+        cur_Bs_cat = np.concatenate((new_states, np.repeat(cur_Bs_cat, nb_states, 1)), -2)
+
+        cur_states = cur_Bs[:1,:,0:2].astype(int)
+        cur_d2s = ds[cur_states]**2
+        cur_d2s = cp.mean((cur_d2s[:,:,1:] + cur_d2s[:,:,:-1]) / 2, axis = 2)[:,:,None]
+        LT = get_Ts_from_Bs(cur_states, TrMatT)
+        if current_step >= min_len:
+            LL = Lp_stay[np.argmax(np.all(cur_states[:,None,:,:-1] == sub_Bs[:,:,None],-1),1)]
+        else:
+            LL = 0
+
+        m_arr, s2_arr, LP = recurrence_step(obs(rows, current_step-1),
+                                            l2(rows, current_step-1),
+                                            cur_d2s, m_arr, s2_arr, LP, LT, LL, nb_states)
+        del LT
+
+        if cur_Bs.shape[1] > max_nb_states:
+            threshold = threshold*1.2
+
+        # a track leaves before the fusion of its own last step, never after
+        if np.any(track_lens[rows] == current_step + 1):
+            retire(np.where(track_lens[rows] == current_step + 1)[0],
+                   m_arr, s2_arr, LP, cur_Bs, cur_Bs_cat)
+            rows, m_arr, s2_arr, LP, cur_Bs_cat = shrink(current_step + 1, m_arr, s2_arr,
+                                                         LP, cur_Bs_cat)
+
+        if len(rows):
+            m_arr, s2_arr, LP, cur_Bs, cur_Bs_cat = fuse_tracks_th(
+                m_arr, s2_arr, LP, cur_Bs, cur_Bs_cat, len(rows),
+                nb_states = nb_states, nb_dims = nb_dims, do_preds = do_preds,
+                threshold = threshold, frame_len = frame_len)
+        current_step += 1
+
+    return LP_out, preds_out
+
+def pack_tracks(all_tracks, segment_length = None, batch_size = 2000, input_LocErr = None):
+    '''
+    Build the batches Proba_Cs_batched consumes, once.
+
+    The packing is a function of the track lengths alone, so a fit builds it once
+    and passes it to every likelihood evaluation. Doing it inside the likelihood
+    instead costs more than the recursion.
+    '''
+    from extrack import segmentation
+    tracks, locerrs, origin = segmentation.flatten_tracks(all_tracks, input_LocErr)
+    batches, order, lengths = segmentation.segment_tracks(
+        tracks, segment_length, batch_size,
+        locerrs = None if input_LocErr is None else locerrs)
+    return dict(batches = batches, order = order, lengths = lengths,
+                origin = origin, tracks = tracks)
+
+def Proba_Cs_batched(all_tracks, LocErr, ds, Fs, TrMat, pBL, cell_dims, nb_substeps,
+                     frame_len, min_len, threshold, max_nb_states, input_LocErr = None,
+                     segment_length = None, batch_size = 2000, max_len = None,
+                     do_preds = 0, packing = None):
+    '''
+    The log likelihood of tracks of any lengths, batched instead of grouped by
+    length.
+
+    ExTrack's usual path runs one recursion per track length; a data set with
+    lengths 5 to 20 pays 16 of them, most on a few hundred tracks. This sorts
+    every track by decreasing length, cuts them into segments of
+    `segment_length` points (segments share their boundary point) and runs one
+    recursion per batch of segments, handing the message from one segment to the
+    next through a carry buffer. `isfirst` decides, per track, whether a segment
+    initialises the recursion or resumes it.
+
+    Only the `ages` scheme is batched this way: its buffer is
+    `frame_len * nb_states` hypotheses whatever the track, so tracks of different
+    lengths and different histories can sit in the same batch and each advances
+    on its own step count. The `sequences` scheme shares one *dynamic* set of
+    branches across the batch, so a fresh track and a resumed one cannot be
+    mixed; call this with the tracks already grouped by length there.
+
+    arguments:
+    all_tracks: dict of (nb_tracks, track_len, nb_dims) arrays keyed by track length.
+    segment_length: number of points per segment, None for one segment per track.
+    batch_size: maximum number of tracks per batch.
+    packing: the output of `pack_tracks`, reused across calls. The packing depends
+        only on the track lengths, never on the parameters, so a fit must build it
+        once and hand it back in; rebuilding it inside the likelihood costs more
+        than the recursion itself.
+    max_len: the length above which a track is considered not to have ended (its
+        end of track term is skipped), i.e. ExTrack's isBL = 0 case. Defaults to
+        the longest track present.
+
+    outputs:
+    LP: dict keyed by track length of (nb_tracks,) log likelihoods, in the input order.
+    preds: same, of (nb_tracks, track_len, nb_states) state probabilities, if do_preds.
+    '''
+    from extrack import segmentation
+
+    if not numba_active():
+        raise RuntimeError('the batched path needs the numba kernels; '
+                           'install numba or use the per length path')
+    if nb_substeps != 1:
+        raise NotImplementedError('the batched path only supports nb_substeps = 1')
+
+    tracks, locerrs, origin = segmentation.flatten_tracks(all_tracks, input_LocErr)
+    if len(tracks) == 0:
+        return {}, {}
+    lengths = np.array([len(t) for t in tracks])
+    if max_len is None:
+        max_len = int(lengths.max())
+    nb_states = TrMat.shape[0]
+    nb_dims = tracks[0].shape[1]
+    hist_len = int(lengths.max())
+
+    ds = np.asarray(ds)
+    if ds.ndim != 1:
+        raise NotImplementedError('the batched path only supports one diffusion length per state')
+    d2 = ds**2
+    pair_d2 = (d2[:, None] + d2[None, :]) / 2
+    log_TrMat = np.log(np.asarray(TrMat))
+    log_Fs = np.log(np.asarray(Fs))
+
+    p_stay = np.ones(nb_states)
+    for cell_len in cell_dims:
+        xs = np.linspace(0+cell_len/2000, cell_len-cell_len/2000, 1000)
+        p_stay = p_stay * np.mean(scipy.stats.norm.cdf((cell_len-xs[:,None])/(ds+1e-200)) - scipy.stats.norm.cdf(-xs[:,None]/(ds+1e-200)), 0)
+    Lp_stay = np.log(p_stay * (1-pBL))
+    end_LL = np.log(pBL + (1-p_stay) - pBL * (1-p_stay))
+
+    shared_LocErr = None
+    if input_LocErr is None:
+        shared_LocErr = np.asarray(LocErr)**2       # (1, 1, nb_dims|1)
+        shared_LocErr = shared_LocErr.reshape((1, 1, -1))
+
+    if packing is None:
+        packing = pack_tracks(all_tracks, segment_length, batch_size, input_LocErr)
+    batches = packing['batches']
+
+    LP_flat = np.zeros(len(tracks))
+    preds_flat = np.zeros((len(tracks), hist_len, nb_states)) if do_preds else None
+    carries = {}
+    for b in batches:
+        rows = b['rows']
+        n = len(rows)
+        key = b['chunk']
+        if key not in carries:
+            # the first batch of a chunk holds all of its tracks and every later
+            # one a prefix of them, so it sizes the carry buffers
+            carries[key] = new_ages_carry(n, frame_len, nb_states, nb_dims,
+                                          hist_len, bool(do_preds))
+        full = carries[key]
+        pos = np.arange(n)                          # a batch is a prefix of its chunk
+        carry = dict(LP = full['LP'][:n], m = full['m'][:n], s2 = full['s2'][:n],
+                     cat = full['cat'][:n], nact = full['nact'][:n])
+
+        l2 = shared_LocErr
+        if l2 is None:
+            l2 = np.ascontiguousarray(b['LocErr'])**2
+
+        # islast = 2 marks a track that stopped before the end of the movie and
+        # therefore pays the end of track term, 1 one that ran to the end
+        islast = b['islast'] * (1 + (lengths[rows] < max_len).astype(np.int64))
+
+        out_LP, out_cat = ages_kernel_call(
+            b['Cs'], l2, log_TrMat, log_Fs, pair_d2, Lp_stay, end_LL,
+            frame_len, min_len, b['nsteps'], b['isfirst'], islast, b['start'],
+            carry, hist_len, bool(do_preds), nb_states)
+
+        done = b['islast'] == 1
+        LP_flat[rows[done]] = out_LP[done]
+        if do_preds:
+            preds_flat[rows[done]] = out_cat[done]
+
+    LP = {}
+    preds = {}
+    for key in sorted(all_tracks.keys(), key = int):
+        block = np.asarray(all_tracks[key])
+        if len(block) == 0:
+            continue
+        LP[key] = np.zeros(len(block))
+        if do_preds:
+            preds[key] = np.zeros((len(block), int(key), nb_states))
+    for flat_i, (key, row) in enumerate(origin):
+        LP[key][row] = LP_flat[flat_i]
+        if do_preds:
+            preds[key][row] = preds_flat[flat_i, :int(key)]
+    return LP, preds
+
 def Pool_star_P_inter(args):
-    return P_Cs_inter_bound_stats_th(*args)[2] # returns the 3rd output which is the predictions
+    args = list(args)
+    kernel = get_sequence_kernel(args.pop() if len(args) > 14 else 'sequences')
+    return kernel(*args)[2] # returns the 3rd output which is the predictions
 
 def predict_Bs(all_tracks,
                dt,
@@ -800,7 +1665,8 @@ def predict_Bs(all_tracks,
                workers = 1,
                input_LocErr = None,
                verbose = 0,
-               nb_max = 1):
+               nb_max = 1,
+               sequence_scheme = 'sequences'):
     '''
     inputs the observed localizations and parameters and determines the proba
     of each localization to be in a given state.
@@ -813,6 +1679,9 @@ def predict_Bs(all_tracks,
     nb_states: number of states. estimated_vals, min_values, max_values should be changed accordingly to describe all states and transitions.
     frame_len: number of frames for which the probability is perfectly computed. See method of the paper for more details.
     nb_max: integer, number of simultanous predictions. Higher numbers strongly increase the speed but might affect the predictions quality.
+    sequence_scheme: 'sequences' (default) keeps one hypothesis per sequence of states over
+        the last frame_len frames, 'ages' keeps one per (segment age, current state), a fixed
+        buffer of frame_len*nb_states (see get_sequence_kernel).
     
     outputs:
     pred_Bs: dict describing the state probability of each track for each time position with track length as keys (number of time positions, e.g. '23') of 3D arrays: dim 0 = track, dim 1 = time position, dim 2 = state.
@@ -877,10 +1746,10 @@ def predict_Bs(all_tracks,
     #Cs, LocErr, ds, Fs, TrMat,pBL,isBL, cell_dims, nb_substeps, frame_len, min_len, threshold, max_nb_states = args_prod[0]
     #Cs, LocErr, ds, Fs, TrMat, pBL, isBL, cell_dims, nb_substeps, frame_len, do_preds, min_len, threshold, max_nb_states = args_prod[0]
     if type(dt) == list:
-        args_prod = np.array(list(product(Csss, [0], [dsss[0]], [Fs], [TrMat],[pBL], [0],[cell_dims], [nb_substeps], [frame_len], [do_preds], [min_len], [threshold], [max_nb_states])), dtype=object)
+        args_prod = np.array(list(product(Csss, [0], [dsss[0]], [Fs], [TrMat],[pBL], [0],[cell_dims], [nb_substeps], [frame_len], [do_preds], [min_len], [threshold], [max_nb_states], [sequence_scheme])), dtype=object)
         args_prod[:, 2] = dsss
     else:
-        args_prod = np.array(list(product(Csss, [0], [ds], [Fs], [TrMat],[pBL], [0],[cell_dims], [nb_substeps], [frame_len], [do_preds], [min_len], [threshold], [max_nb_states])), dtype=object)
+        args_prod = np.array(list(product(Csss, [0], [ds], [Fs], [TrMat],[pBL], [0],[cell_dims], [nb_substeps], [frame_len], [do_preds], [min_len], [threshold], [max_nb_states], [sequence_scheme])), dtype=object)
     args_prod[:, 6] = isBLs
     if input_LocErr != None:
         args_prod[:,1] = sigss
@@ -988,7 +1857,7 @@ def extract_params(params, dt, nb_states, nb_substeps, input_LocErr = None, Matr
 def pool_star_proba(args):
     return Proba_Cs(*args)
 
-def cum_Proba_Cs(params, all_tracks, dt, cell_dims, input_LocErr, nb_states, nb_substeps, frame_len, verbose = 1, workers = 1, Matrix_type = 1, threshold = 0.2, max_nb_states = 120, max_number_of_tracks_per_matrix = 2000):
+def cum_Proba_Cs(params, all_tracks, dt, cell_dims, input_LocErr, nb_states, nb_substeps, frame_len, verbose = 1, workers = 1, Matrix_type = 1, threshold = 0.2, max_nb_states = 120, max_number_of_tracks_per_matrix = 2000, sequence_scheme = 'sequences'):
     '''
     each probability can be multiplied to get a likelihood of the model knowing
     the parameters LocErr, D0 the diff coefficient of state 0 and F0 fraction of
@@ -1044,10 +1913,10 @@ def cum_Proba_Cs(params, all_tracks, dt, cell_dims, input_LocErr, nb_states, nb_
         dsss.reverse()
         
         if type(dt) == list:
-            args_prod = np.array(list(product(Csss, [0], [dsss[0]], [Fs], [TrMat],[pBL], [0],[cell_dims], [nb_substeps], [frame_len], [min_len], [threshold], [max_nb_states])), dtype=object)
+            args_prod = np.array(list(product(Csss, [0], [dsss[0]], [Fs], [TrMat],[pBL], [0],[cell_dims], [nb_substeps], [frame_len], [min_len], [threshold], [max_nb_states], [sequence_scheme])), dtype=object)
             args_prod[:, 2] = dsss
         else:
-            args_prod = np.array(list(product(Csss, [0], [ds], [Fs], [TrMat],[pBL], [0],[cell_dims], [nb_substeps], [frame_len], [min_len], [threshold], [max_nb_states])), dtype=object)
+            args_prod = np.array(list(product(Csss, [0], [ds], [Fs], [TrMat],[pBL], [0],[cell_dims], [nb_substeps], [frame_len], [min_len], [threshold], [max_nb_states], [sequence_scheme])), dtype=object)
         
         args_prod[:, 6] = isBLs
         if input_LocErr != None:
@@ -1309,8 +2178,9 @@ def param_fitting(all_tracks,
                   steady_state = False,
                   cell_dims = [1], # list of dimensions limit for the field of view (FOV) of the cell in um, a membrane protein in a typical e-coli cell in tirf would have a cell_dims = [0.5,3], in case of cytosolic protein one should imput the depth of the FOV e.g. [0.3] for tirf or [0.8] for hilo
                   input_LocErr = None, 
-                  threshold = 0.2, 
-                  max_nb_states = 120):
+                  threshold = 0.2,
+                  max_nb_states = 120,
+                  sequence_scheme = 'sequences'):
     
     '''
     fitting the parameters to the data set
@@ -1328,6 +2198,9 @@ def param_fitting(all_tracks,
     cell_dims: Dimension limits (um) (default [1], can also be [1,2] for instance in case of two limiting dimensions).
     threshold: threshold for the fusion of the sequences of states (default value = 0.2). The threshold is applied to mu the mean position and s the standard deviation of the particle position (see the article for more details).
     max_nb_states: maximum number of sequences of states to consider.
+    sequence_scheme: 'sequences' (default) keeps one hypothesis per sequence of states over
+        the last frame_len frames, 'ages' keeps one per (segment age, current state), a fixed
+        buffer of frame_len*nb_states (see get_sequence_kernel).
     method: Optimization method used by the lmfit package (default = 'BFGS'). Other methods may not work.
 
     outputs:
@@ -1368,7 +2241,7 @@ def param_fitting(all_tracks,
     
     print('cell_dims', cell_dims)
     
-    fit = minimize(cum_Proba_Cs, params, args=(all_tracks, dt, cell_dims,input_LocErr, nb_states, nb_substeps, frame_len, verbose, workers, Matrix_type, threshold, max_nb_states), method = method, nan_policy = 'propagate')
+    fit = minimize(cum_Proba_Cs, params, args=(all_tracks, dt, cell_dims,input_LocErr, nb_states, nb_substeps, frame_len, verbose, workers, Matrix_type, threshold, max_nb_states, 2000, sequence_scheme), method = method, nan_policy = 'propagate')
     if verbose == 0:
         print('')
         

@@ -45,9 +45,21 @@ def prod_3GaussPDF(sigma1,sigma2,sigma3, mu1, mu2, mu3):
 def gaussian(x, sig, mu):
     return np.product(1/(2*np.pi*sig**2)**0.5 * np.exp(-(x-mu)**2/(2*sig**2)), -1)
 
-def get_LC_Km_Ks(Cs, LocErr, ds, Fs, TrMat, nb_substeps=1, frame_len = 4, threshold = 0.2, max_nb_states = 1000):
+def get_LC_Km_Ks(Cs, LocErr, ds, Fs, TrMat, nb_substeps=1, frame_len = 4, threshold = 0.2, max_nb_states = 1000, fractions_at = 'last'):
     '''
     variation of the main function to extract LC, Km and Ks for all positions
+
+    The recursion walks the input from its last position to its first, so the
+    state the fractions Fs weight -- the state of the first position in time --
+    is the LAST one this function sees. `fractions_at = 'last'` applies them
+    there, which is right for the pass that runs over the track as given.
+
+    get_pos_PDF also runs this on the REVERSED track, and that pass meets the
+    first position of the track at its very first step. `fractions_at = 'first'`
+    applies Fs there instead, so that every message it stores carries them --
+    including the intermediate ones, which is what the interior positions are
+    built from. Applying them at the first step also survives the fusion of the
+    state histories, which forgets the identity of that state a few steps later.
     '''
     nb_Tracks = len(Cs)
     nb_locs = len(Cs[0]) # number of localization per track
@@ -113,6 +125,10 @@ def get_LC_Km_Ks(Cs, LocErr, ds, Fs, TrMat, nb_substeps=1, frame_len = 4, thresh
     current_step += 1
     Km = cp.repeat(Km, cur_nb_Bs, axis = 1)
     removed_steps = 0
+   
+    if fractions_at == 'first':
+        # cur_Bs[:,:,-1] is the state of the position this pass saw first
+        LP = LP + cp.log(Fs[cur_Bs[:,:,-1].astype(int)])
    
     all_Km.append(Km)
     all_Ks.append(Ks**0.5)
@@ -187,10 +203,14 @@ def get_LC_Km_Ks(Cs, LocErr, ds, Fs, TrMat, nb_substeps=1, frame_len = 4, thresh
        
     newKs =  cp.array((Ks + LocErr2[:,:, min(LocErr_index, nb_locs-current_step)]))
     log_integrated_term = cp.sum(-0.5*cp.log(2*np.pi*newKs) - (Cs[:,:,0] - Km)**2/(2*newKs),axis=2)
-    LF = cp.log(Fs[cur_Bs[:,:,0].astype(int)]) # Log proba of starting in a given state (fractions)
-    #LF = cp.log(0.5)
-    # cp.mean(cp.log(Fs[cur_Bs[:,:,:].astype(int)]), 2) # Log proba of starting in a given state (fractions)
-    LP += log_integrated_term + LF
+    if fractions_at == 'first':
+        LF = 0 # already applied to the first state this pass saw
+    else:
+        LF = cp.log(Fs[cur_Bs[:,:,0].astype(int)]) # Log proba of starting in a given state (fractions)
+    LP = LP + log_integrated_term + LF
+    if len(all_LP): # the message stored last is the one that describes the
+        all_LP[-1] = LP # first position: give it the term just integrated,
+        # explicitly rather than through the in-place += that used to do it
    
     pred_LP = LP
     if cp.max(LP)>600: # avoid overflow of exponentials, mechanically also reduces the weight of longest tracks
@@ -205,6 +225,21 @@ def get_LC_Km_Ks(Cs, LocErr, ds, Fs, TrMat, nb_substeps=1, frame_len = 4, thresh
 
 # LocErr = cur_LocErr
 def get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len = 7, threshold = 0.2, max_nb_states = 1000):
+    """
+    TrMat follows the convention of the rest of the package, the one
+    extract_params builds and param_fitting reports: TrMat[i, j] = P(i -> j),
+    rows summing to 1.
+
+    The two recursions below anchor the state fractions at the OPPOSITE end of
+    the track from the one in tracking.py (there Fs lands on the first state the
+    walk meets, here on the last), which reverses the direction the chain is
+    read in while the transition indexing stays the same. Transposing here is
+    what makes the two agree, so that a matrix fitted by param_fitting can be
+    handed straight to position_refinement. Checked against the exact posterior
+    of an asymmetric 2-state chain: with the transpose the refined positions
+    match it to 2e-15, without it they are off by ~1 x LocErr.
+    """
+    TrMat = np.asarray(TrMat).T
     nb_substeps = 1 
     ds = cp.array(ds)
     Cs = cp.array(Cs)
@@ -215,12 +250,18 @@ def get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len = 7, threshold = 0.2, max_n
     #get Km, Ks and LC backward
     TrMat2 = np.copy(TrMat).T # transpose the matrix for the backward transitions
     Cs2 = Cs[:,::-1,:] # inverse the time steps
-    LP2, final_Bs2, all_cur_Bs2, preds2, all_Km2, all_Ks2, all_LP2 = get_LC_Km_Ks(Cs2, LocErr, ds, cp.ones(TrMat2.shape[0],)/TrMat2.shape[0], TrMat2, nb_substeps, frame_len, threshold, max_nb_states) # we set a neutral Fs so it doesn't get counted twice
+    # this pass meets position 0 first, so it is the one that carries Fs; the
+    # forward pass applies them at its own last step, which is the same state,
+    # and only the first position is built from that message -- so Fs is
+    # counted exactly once wherever it is used
+    LP2, final_Bs2, all_cur_Bs2, preds2, all_Km2, all_Ks2, all_LP2 = get_LC_Km_Ks(Cs2, LocErr, ds, Fs, TrMat2, nb_substeps, frame_len, threshold, max_nb_states, fractions_at = 'first')
     
     # do the approximation for the first position, product of 2 gaussian PDF, (integrated term and localization error)    
     sig, mu, LC = prod_2GaussPDF(LocErr[:,None,0], all_Ks1[-1], Cs[:,None,0], all_Km1[-1])
     
-    LP = all_LP1[-1] + LC
+    # all_LP1[-1] already integrates this observation (LC is that same term),
+    # so it must not be added a second time
+    LP = all_LP1[-1]
     all_pos_means = [mu]
     all_pos_stds = [sig]
     all_pos_weights = [LP]
@@ -252,9 +293,10 @@ def get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len = 7, threshold = 0.2, max_n
         nb_dims = Km1.shape[3]
         nb_states = TrMat.shape[0]
        
-        mu = np.zeros((nb_tracks, 0, Km2.shape[-1]))
-        sig = np.zeros((nb_tracks, 0, Ks2.shape[-1]))
-        LP = np.zeros((nb_tracks, 0))
+        # the last axis of the variances is 1 when they are shared by all the dimensions
+        # and nb_dims when they are not (which is what the moment matched fusion returns),
+        # so its width is kept dynamic rather than assumed to be 1
+        mus, sigs, LPs = [], [], []
        
         Bs2_len = np.min([k+1, frame_len-1])
         # we must reorder the metrics so the Bs from the backward terms correspond to the forward terms
@@ -276,20 +318,24 @@ def get_pos_PDF(Cs, LocErr, ds, Fs, TrMat, frame_len = 7, threshold = 0.2, max_n
             
             sub_LP = sub_LP1 + sub_LP2 + sub_LC
            
-            sub_sig = sub_sig.reshape((nb_tracks,sub_sig.shape[1]*sub_sig.shape[2],1))
+            sub_sig = sub_sig.reshape((nb_tracks,sub_sig.shape[1]*sub_sig.shape[2],sub_sig.shape[-1]))
             sub_mu = sub_mu.reshape((nb_tracks,sub_mu.shape[1]*sub_mu.shape[2], nb_dims))
             sub_LP = sub_LP.reshape((nb_tracks,sub_LP.shape[1]*sub_LP.shape[2]))
-           
-            mu = np.concatenate((mu, sub_mu), axis = 1)
-            sig = np.concatenate((sig, sub_sig), axis = 1)
-            LP = np.concatenate((LP, sub_LP), axis = 1)
+
+            mus.append(sub_mu)
+            sigs.append(sub_sig)
+            LPs.append(sub_LP)
+
+        mu = np.concatenate(mus, axis = 1)
+        sig = np.concatenate(sigs, axis = 1)
+        LP = np.concatenate(LPs, axis = 1)
         
         all_pos_means.append(mu)
         all_pos_stds.append(sig)
         all_pos_weights.append(LP)
     
     sig, mu, LC = prod_2GaussPDF(LocErr[:,None,-1], all_Ks2[-1], Cs[:,None,-1], all_Km2[-1])
-    LP = all_LP2[-1] + LC
+    LP = all_LP2[-1] # already integrates this observation, as above
     
     all_pos_means.append(mu)
     all_pos_stds.append(sig)

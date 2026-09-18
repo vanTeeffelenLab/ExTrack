@@ -1,0 +1,44 @@
+multiprocessing is only supported on Linux and MacOS
+version: 1.6.3
+1000 tracks of 12 points, frame_len = 4, LocErr = 0.020 um, d0 = 0
+
+A. error on the total log likelihood at the true parameters
+   d1     p    |   legacy      moment m.  |  gain  |  rms per track legacy   moment m.   gain
+   0.010  0.02 |     -0.5467     -0.3509  |  1.56 x |    1.032e-02   9.094e-03   1.13 x
+   0.010  0.05 |     -0.2775     -0.5900  |  0.47 x |    2.134e-02   1.774e-02   1.20 x
+   0.010  0.10 |     +0.1337     +0.0171  |  7.81 x |    2.652e-02   2.137e-02   1.24 x
+   0.010  0.20 |     -0.3470     -0.9392  |  0.37 x |    2.938e-02   2.548e-02   1.15 x
+   0.015  0.02 |     -0.4132     -0.2976  |  1.39 x |    1.447e-02   1.168e-02   1.24 x
+   0.015  0.05 |     -0.6118     -0.2508  |  2.44 x |    2.239e-02   1.686e-02   1.33 x
+   0.015  0.10 |     -0.4212     -0.2590  |  1.63 x |    2.650e-02   1.886e-02   1.40 x
+   0.015  0.20 |     -0.6002     -0.6968  |  0.86 x |    2.469e-02   1.874e-02   1.32 x
+   0.020  0.02 |     -0.1636     -0.3513  |  0.47 x |    2.016e-02   1.753e-02   1.15 x
+   0.020  0.05 |     -1.3485     -1.1704  |  1.15 x |    3.090e-02   2.274e-02   1.36 x
+   0.020  0.10 |     -0.7455     -1.0220  |  0.73 x |    3.338e-02   2.395e-02   1.39 x
+   0.020  0.20 |     -0.9684     -0.6844  |  1.41 x |    2.617e-02   1.803e-02   1.45 x
+   0.030  0.02 |     -1.3862     -0.9957  |  1.39 x |    2.680e-02   2.013e-02   1.33 x
+   0.030  0.05 |     -1.2740     -1.7070  |  0.75 x |    3.626e-02   2.608e-02   1.39 x
+   0.030  0.10 |     -2.0082     -1.6253  |  1.24 x |    4.217e-02   3.004e-02   1.40 x
+   0.030  0.20 |     -0.7111     +0.0159  | 44.68 x |    3.399e-02   2.218e-02   1.53 x
+   0.040  0.02 |     -0.8374     -1.5244  |  0.55 x |    3.049e-02   2.147e-02   1.42 x
+   0.040  0.05 |     -0.9588     -2.3671  |  0.41 x |    3.854e-02   2.975e-02   1.30 x
+   0.040  0.10 |     -3.4795     -1.9805  |  1.76 x |    5.198e-02   3.330e-02   1.56 x
+   0.040  0.20 |     -0.1091     -0.0022  | 48.58 x |    3.999e-02   2.662e-02   1.50 x
+   ----------------------------------------------------------------------------------------
+   mean       |      0.8671      0.8424  |  1.03 x |    2.932e-02   2.158e-02   1.36 x   (|.| for the totals)
+   moment matching has the smaller rms error at 20/20 models, the smaller total at 12/20
+
+B. bias of the maximum of the log likelihood, one parameter at a time
+   (the other parameters stay at the truth: this is the fusion alone,
+    no optimizer and no sampling noise in the comparison)
+
+   parameter | mean bias legacy   mean bias moment m. | mean |bias| legacy  moment m.   gain
+   D1        |          +0.148 %             -0.125 % |           0.342 %      0.210 %   1.63 x
+   LocErr    |          +0.050 %             +0.011 % |           0.052 %      0.019 %   2.70 x
+   p01       |          +1.095 %             -0.937 % |           1.098 %      0.939 %   1.17 x
+   D0        |          -0.077 %             -0.690 % |           1.475 %      1.074 %   1.37 x
+   (in %% of the true value, D0 in %% of the scan range since its truth is 0)
+
+   moment matching closer to the exact maximum at 55/80 (parameter, model) pairs
+
+done in 3202 s
